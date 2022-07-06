@@ -158,22 +158,30 @@ esp_err_t RTCDriver::readHoursFromRTC(uint8_t *phours) {
 long RTCDriver::getEpoch(void) {
 	struct tm t;
 	memset(&t, 0, sizeof(tm)); // Initalize to all 0's
-	t.tm_year =  RTCDriver::bcdToInt(this->sttime.Year & FILTER_YEAR) + RTC_BIAS_YEAR - EPOCH_YEAR; 	// This is year-1900, so RTC store from 2000, not sure which epoch has to be used
-	t.tm_mon = RTCDriver::bcdToInt(this->sttime.Month & FILTER_MONTH) - EPOCH_BIAS_MONTH;       			// According to https://en.cppreference.com/w/cpp/chrono/c/mktime subtract is required
+	t.tm_year = RTCDriver::bcdToInt(this->sttime.Year & FILTER_YEAR) + RTC_BIAS_YEAR - EPOCH_YEAR; 	// This is year-1900, so RTC store from 2000, not sure which epoch has to be used
+	t.tm_mon  = RTCDriver::bcdToInt(this->sttime.Month & FILTER_MONTH) - EPOCH_BIAS_MONTH;       			// According to https://en.cppreference.com/w/cpp/chrono/c/mktime subtract is required
 	t.tm_mday = RTCDriver::bcdToInt(this->sttime.Date & FILTER_DATE);
 	t.tm_hour = RTCDriver::bcdToInt(this->sttime.Hours & FILTER_HOURS);
-	t.tm_min = RTCDriver::bcdToInt(this->sttime.Minutes & FILTER_MINS);
-	t.tm_sec = RTCDriver::bcdToInt(this->sttime.Seconds & FILTER_SECS);
+	t.tm_min  = RTCDriver::bcdToInt(this->sttime.Minutes & FILTER_MINS);
+	t.tm_sec  = RTCDriver::bcdToInt(this->sttime.Seconds & FILTER_SECS);
 	return mktime(&t);
 }
 
 void RTCDriver::updateTimeFromEpoch(long epoch) {
-	//TODO Rework the time structure handling
 	struct tm *tm;
 	tm = gmtime( &epoch );
-	cout <<" This is: "<< tm->tm_year + EPOCH_YEAR <<"-"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"-"<<tm->tm_mday<<" "<<tm->tm_hour<<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
-	//this->sttime.Year =  RTCDriver::intToBCD( tm->tm_year - RTC_BIAS_YEAR);
+	//cout <<" This is: "<< tm->tm_year + EPOCH_YEAR <<"-"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"-"<<tm->tm_mday<<" "<<tm->tm_hour<<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
+	this->sttime.Year		= RTCDriver::intToBCD( tm->tm_year + EPOCH_YEAR - RTC_BIAS_YEAR);
+	this->sttime.Month		= RTCDriver::intToBCD( tm->tm_mon  + EPOCH_BIAS_MONTH);
+	this->sttime.Date  		= RTCDriver::intToBCD( tm->tm_mday);
+	this->sttime.Hours		= RTCDriver::intToBCD( tm->tm_hour);
+	this->sttime.Minutes	= RTCDriver::intToBCD( tm->tm_min);
+	this->sttime.Seconds	= RTCDriver::intToBCD( tm->tm_sec);
+}
 
+esp_err_t RTCDriver::writeTimeFromEpochToRTC(long epoch) {
+	RTCDriver::updateTimeFromEpoch(epoch);
+	return RTCDriver::writeTimeToRTC();
 }
 
 RTCDriver::~RTCDriver() {

@@ -74,6 +74,7 @@ public:
 	esp_err_t writeTimeToRTC(void);
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
+	esp_err_t writeTimeFromEpochToRTC(long);
 //	esp_err_t writeTimeBasedonEpoc(long epoch);
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
