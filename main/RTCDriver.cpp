@@ -169,8 +169,10 @@ long RTCDriver::getEpoch(void) {
 
 void RTCDriver::updateTimeFromEpoch(long epoch) {
 	//TODO Rework the time structure handling
-	struct tm * ptm;
-	time ( &epoch );
+	struct tm *tm;
+	tm = gmtime( &epoch );
+	cout <<" This is: "<< tm->tm_year + EPOCH_YEAR <<"-"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"-"<<tm->tm_mday<<" "<<tm->tm_hour<<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
+	//this->sttime.Year =  RTCDriver::intToBCD( tm->tm_year - RTC_BIAS_YEAR);
 
 }
 

@@ -113,6 +113,7 @@ extern "C" void app_main(void)
 		 ooo->readDateFromRTC(&date);
 		 printf("Date: %d-%.2d-%.2d \n", year, month, date);
 		 printf("EPOCH : %ld \n", ooo->getEpoch());
+		 ooo->updateTimeFromEpoch(ooo->getEpoch());
 		 vTaskDelay( 1000 / portTICK_PERIOD_MS );
 	 }
 
