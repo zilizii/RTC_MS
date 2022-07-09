@@ -35,7 +35,7 @@ using namespace std;
 //Filter default values
 #define FILTER_SECS			0x7F
 #define FILTER_MINS			0x7F
-#define FILTER_HOURS        0x7F
+#define FILTER_HOURS		0x7F
 #define FILTER_DATE			0x3F
 #define FILTER_WEEKDAY		0x03
 #define FILTER_MONTH		0x1F
@@ -50,7 +50,7 @@ using namespace std;
  * */
 
 typedef struct  __attribute__ ((packed)) {
-	uint8_t Seconds;    // 0x04
+	uint8_t Seconds;    	// 0x04
 	uint8_t Minutes;	// 0x05
 	uint8_t Hours;		// 0x06
 	uint8_t Date;		// 0x07
@@ -65,7 +65,6 @@ private:
 	uint8_t _24_12 			= 0;
 	uint8_t intToBCD(uint8_t num);
 	uint8_t bcdToInt(uint8_t bcd);
-//	string unixTimeToHumanReadable(long int seconds)
 
 public:
 	_ttime sttime;
@@ -75,7 +74,6 @@ public:
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
-//	esp_err_t writeTimeBasedonEpoc(long epoch);
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
 	esp_err_t writeMonthToRTC(uint8_t);
