@@ -2,7 +2,7 @@
  * RTCDriver.h
  *
  *  Created on: 2022. jún. 26.
- *      Author: Dell
+ *      Author: zilizii
  */
 using namespace std;
 
@@ -18,31 +18,36 @@ using namespace std;
 #include "i2c_cmd.h"
 
 // i2c Address
-#define ADDRESS_RTC   		0x51
-#define RTC_BIAS_YEAR		2000
+#define ADDRESS_RTC   			0x51
+#define RTC_BIAS_YEAR			2000
 
 // Register Addresses
-#define REG_ADDR_RAM		0x03
-#define REG_ADDR_ALL		0x04
-#define REG_ADDR_SECS		0x04
-#define REG_ADDR_MINS		0x05
-#define REG_ADDR_HOURS		0x06
-#define REG_ADDR_DATE		0x07
-#define REG_ADDR_WEEKDAY	0x08
-#define REG_ADDR_MONTH		0x09
-#define REG_ADDR_YEAR		0x0A
+#define REG_ADDR_RAM			0x03
+#define REG_ADDR_ALL			0x04
+#define REG_ADDR_SECS			0x04
+#define REG_ADDR_MINS			0x05
+#define REG_ADDR_HOURS			0x06
+#define REG_ADDR_DATE			0x07
+#define REG_ADDR_WEEKDAY		0x08
+#define REG_ADDR_MONTH			0x09
+#define REG_ADDR_YEAR			0x0A
+
+#define REG_ADDR_TIMER_VALUE	0x10
+#define REG_ADDR_TIMER_MODE		0x11
 
 //Filter default values
-#define FILTER_SECS			0x7F
-#define FILTER_MINS			0x7F
-#define FILTER_HOURS		0x7F
-#define FILTER_DATE			0x3F
-#define FILTER_WEEKDAY		0x03
-#define FILTER_MONTH		0x1F
-#define FILTER_YEAR			0xFF
+#define FILTER_SECS				0x7F
+#define FILTER_MINS				0x7F
+#define FILTER_HOURS			0x7F
+#define FILTER_DATE				0x3F
+#define FILTER_WEEKDAY			0x03
+#define FILTER_MONTH			0x1F
+#define FILTER_YEAR				0xFF
 
-#define EPOCH_YEAR			1900
-#define EPOCH_BIAS_MONTH	1
+#define FILTER_TIMER_VALUE		0xFF
+
+#define EPOCH_YEAR				1900
+#define EPOCH_BIAS_MONTH		1
 
 
 /*
@@ -74,6 +79,7 @@ public:
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
+
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
 	esp_err_t writeMonthToRTC(uint8_t);
@@ -86,6 +92,16 @@ public:
 	esp_err_t readMinutesFromRTC(uint8_t *);
 	esp_err_t writeHoursToRTC(uint8_t);
 	esp_err_t readHoursFromRTC(uint8_t *);
+
+	// Timer Functionality supporting implementation
+	esp_err_t readTimerValueFromRTC(uint8_t *);
+	esp_err_t writeTimerValueToRTC(uint8_t);
+	esp_err_t readTimerModeFromRTC(uint8_t *);
+	esp_err_t writeTimerModeToRTC(uint8_t);
+
+	// RAM byte implementation
+	esp_err_t readRAMFromRTC(uint8_t *);
+	esp_err_t writeRAMToRTC(uint8_t);
 	virtual ~RTCDriver();
 };
 
