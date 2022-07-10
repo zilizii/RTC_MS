@@ -22,8 +22,12 @@ using namespace std;
 #define RTC_BIAS_YEAR			2000
 
 // Register Addresses
+#define REG_ADDR_ALL			0x00
+#define REG_ADDR_CONTROL1		0x00
+#define REG_ADDR_CONTROL2		0x01
+#define REG_ADDR_OFFSET			0x02
 #define REG_ADDR_RAM			0x03
-#define REG_ADDR_ALL			0x04
+#define REG_ADDR_TIME			0x04
 #define REG_ADDR_SECS			0x04
 #define REG_ADDR_MINS			0x05
 #define REG_ADDR_HOURS			0x06
@@ -55,13 +59,24 @@ using namespace std;
  * */
 
 typedef struct  __attribute__ ((packed)) {
+	uint8_t	Control1;		// 0x00
+	uint8_t	Control2;		// 0x01
+	uint8_t	Offset;			// 0x02
+	uint8_t RAM;			// 0x03
 	uint8_t Seconds;    	// 0x04
-	uint8_t Minutes;	// 0x05
-	uint8_t Hours;		// 0x06
-	uint8_t Date;		// 0x07
-	uint8_t Weekday;	// 0x08
-	uint8_t Month;		// 0x09
-	uint8_t Year;		// 0x0A
+	uint8_t Minutes;		// 0x05
+	uint8_t Hours;			// 0x06
+	uint8_t Date;			// 0x07
+	uint8_t Weekday;		// 0x08
+	uint8_t Month;			// 0x09
+	uint8_t Year;			// 0x0A
+	uint8_t Seconds_Alarm;	// 0x0B
+	uint8_t Minutes_Alarm;	// 0x0C
+	uint8_t Hours_Alarm;	// 0x0D
+	uint8_t Date_Alarm;		// 0x0E
+	uint8_t Weekday_Alarm;	// 0x0F
+	uint8_t Timer_Value;	// 0x10
+	uint8_t Timer_Mode;		// 0x11
 }_ttime;
 
 class RTCDriver {
@@ -74,12 +89,14 @@ private:
 public:
 	_ttime sttime;
 	RTCDriver(SemaphoreHandle_t *);
-	esp_err_t readTimeFromRTC(void);
+	esp_err_t readAllRegsFromRTC(void);
+	esp_err_t writeAllRegsToRTC(void);
 	esp_err_t writeTimeToRTC(void);
+	esp_err_t readTimeFromRTC(void);
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
-
+	bool isTimerWakeUp(bool);
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
 	esp_err_t writeMonthToRTC(uint8_t);

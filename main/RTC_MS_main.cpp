@@ -91,7 +91,7 @@ extern "C" void app_main(void)
 	if(ret != ESP_OK)
 		 cout<< "i2c driver install failed" << endl;
 	RTCDriver * ooo = new RTCDriver(&i2c_mutex);
-	ret = ooo->readTimeFromRTC();
+	ret = ooo->readAllRegsFromRTC();
 	if(ret != ESP_OK){
 			 cout<< "i2c Read Failed" << endl;
 	}

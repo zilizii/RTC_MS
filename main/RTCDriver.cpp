@@ -10,11 +10,34 @@
 
 RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
 	this->smph = Smpf;
+
+
+
 	// TODO Auto-generated constructor stub
 
 }
 
-esp_err_t RTCDriver::readTimeFromRTC(void) {
+bool RTCDriver::isTimerWakeUp(bool updateRequired) {
+	esp_err_t ret;
+	uint8_t reg =0;
+	if(updateRequired == true) {
+		xSemaphoreTake(*(this->smph), portMAX_DELAY);
+		ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , &reg , 1);
+		xSemaphoreGive(*(this->smph));
+	}
+	else{
+		//register filled from internal structure variable
+		reg = this->sttime.Control2;
+	}
+	// Checking the bit
+	if ((reg >> 3 & 0x1) == 1) {
+		// Timer wake up!
+		return true;
+	}
+	return false;
+}
+
+esp_err_t RTCDriver::readAllRegsFromRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
 	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_ALL , (uint8_t *)(&(this->sttime)), sizeof(_ttime)/sizeof(uint8_t));
@@ -22,10 +45,27 @@ esp_err_t RTCDriver::readTimeFromRTC(void) {
 	return ret;
 }
 
-esp_err_t RTCDriver::writeTimeToRTC(void) {
+esp_err_t RTCDriver::writeAllRegsToRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
 	ret = i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_ALL , (uint8_t *)(&(this->sttime)), sizeof(_ttime)/sizeof(uint8_t));
+	xSemaphoreGive(*(this->smph));
+	return ret;
+}
+
+esp_err_t RTCDriver::readTimeFromRTC(void) {
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
+	xSemaphoreGive(*(this->smph));
+	return ret;
+}
+
+
+esp_err_t RTCDriver::writeTimeToRTC(void) {
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -213,6 +253,8 @@ esp_err_t RTCDriver::writeTimerModeToRTC(uint8_t timerMode) {
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
+
+
 
 
 
