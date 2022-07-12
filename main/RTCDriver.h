@@ -53,6 +53,31 @@ using namespace std;
 #define EPOCH_YEAR				1900
 #define EPOCH_BIAS_MONTH		1
 
+#define AIE						0x80 /*Alarm Interrupt Enable*/
+#define AF						0x40 /*Alarm Flag*/
+#define MI						0x20 /*Minute Interrupt Enable*/
+#define HMI						0x10 /*Half Minute Interrupt Enable*/
+#define TF						0x08 /*Timer Flag*/
+#define FD 						0x07 /*CLKOUT Frequency*/
+
+#define FD_32kHz				0x00 /*32.768 kHz – Default value*/
+#define FD_16kHz				0x01 /*16.384 kHz*/
+#define FD_8kHz					0x02 /* 8.192 kHz*/
+#define FD_4kHz					0x03 /* 4.096 kHz*/
+#define FD_2kHz					0x04 /* 2.048 kHz*/
+#define FD_1kHz					0x05 /* 1.024 kHz*/
+#define FD_1Hz					0x06 /* 1      Hz*/
+#define FD_CLKOUT_LOW			0x07 /*CLKOUT = LOW*/
+
+#define TD						0x18 /*Timer Clock Frequency */
+#define TE						0x04 /*Timer Enable*/
+#define TIE						0x02 /*Timer Interrupt Enable*/
+#define TI_TP					0x01 /*Timer Interrupt Mode*/
+
+#define TD_4kHz					0x00 /*4.096 kHz*/
+#define TD_64Hz					0x01 /*64     Hz*/
+#define TD_1Hz					0x02 /* 1     Hz*/
+#define TD_1_60Hz				0x03 /* 1/60  Hz - Default value*/
 
 /*
  * Stucture to store the RTC values in memory, Coded with BCD
@@ -78,6 +103,7 @@ typedef struct  __attribute__ ((packed)) {
 	uint8_t Timer_Value;	// 0x10
 	uint8_t Timer_Mode;		// 0x11
 }_ttime;
+
 
 class RTCDriver {
 private:
@@ -119,6 +145,10 @@ public:
 	// RAM byte implementation
 	esp_err_t readRAMFromRTC(uint8_t *);
 	esp_err_t writeRAMToRTC(uint8_t);
+
+
+	//testing purpose functions
+	esp_err_t printAllRegs(bool);
 	virtual ~RTCDriver();
 };
 

@@ -18,6 +18,7 @@ RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
 }
 
 bool RTCDriver::isTimerWakeUp(bool updateRequired) {
+	// TODO This function shall be revised
 	esp_err_t ret;
 	uint8_t reg =0;
 	if(updateRequired == true) {
@@ -271,6 +272,24 @@ esp_err_t RTCDriver::writeRAMToRTC(uint8_t data) {
 	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_RAM, &data, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
+}
+
+esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
+	esp_err_t ret;
+
+	if(updateRequired == true) {
+		ret = this->RTCDriver::readAllRegsFromRTC();
+	}
+	else {
+		ret = ESP_OK;
+	}
+	printf("Data Content : \r");
+	uint8_t *p = (uint8_t *)(&(this->sttime));
+	for (uint8_t i= 0; i<(sizeof(_ttime)/sizeof(uint8_t)); i++) {
+		printf("%02X : %02X \n ", i, *(p+i) );
+	}
+	return ret;
+
 }
 
 RTCDriver::~RTCDriver() {
