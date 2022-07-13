@@ -70,9 +70,13 @@ using namespace std;
 #define FD_CLKOUT_LOW			0x07 /*CLKOUT = LOW*/
 
 #define TD						0x18 /*Timer Clock Frequency */
+#define TD_CHECK(x)				((x & TD) >> 3)
 #define TE						0x04 /*Timer Enable*/
+#define TE_CHECK(x)				((x & TE) >> 2)
 #define TIE						0x02 /*Timer Interrupt Enable*/
+#define TIE_CHECK(x)			((x & TIE) >> 1)
 #define TI_TP					0x01 /*Timer Interrupt Mode*/
+#define TI_TP_CHECK(x)			(x & TI_TP)
 
 #define TD_4kHz					0x00 /*4.096 kHz*/
 #define TD_64Hz					0x01 /*64     Hz*/
@@ -83,6 +87,8 @@ using namespace std;
  * Stucture to store the RTC values in memory, Coded with BCD
  * */
 
+// TODO operator [] overload for struct
+// TODO check c++ alternatives like std::array
 typedef struct  __attribute__ ((packed)) {
 	uint8_t	Control1;		// 0x00
 	uint8_t	Control2;		// 0x01
@@ -113,7 +119,11 @@ private:
 	uint8_t bcdToInt(uint8_t bcd);
 
 public:
+	// TODO sttime should be private
 	_ttime sttime;
+	// TODO Check every function is necessary
+	// TODO implement internal structure update
+	// TODO Check possibility for running internal structure update without the RTC - Task in every 1 sec to update or ....
 	RTCDriver(SemaphoreHandle_t *);
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
@@ -122,7 +132,7 @@ public:
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
-	bool isTimerWakeUp(bool);
+	esp_err_t isTimerWakeUp(bool, bool *);
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
 	esp_err_t writeMonthToRTC(uint8_t);

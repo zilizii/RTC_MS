@@ -96,14 +96,19 @@ extern "C" void app_main(void)
 			 cout<< "i2c Read Failed" << endl;
 	}
 	cout << "app_main starting" << endl;
-	ooo->writeYearToRTC(2022);
+	/*ooo->writeYearToRTC(2022);
 	ooo->writeMonthToRTC(7);
-	ooo->writeDateToRTC(3);
+	ooo->writeDateToRTC(3);*/
+	//Timer Trial every 5 sec a
+	ooo->writeTimerValueToRTC(5);
+	ooo->writeTimerModeToRTC(0b10111);
+
 	while(true) {
 		 /*ret = ooo->updateTimeFromRTC();
 		 if(ret != ESP_OK)
      	 		 cout<< "i2c Read Failed";
 		 printf("Time: %.2d:%.2d:%.2d \n", bcdToInt(ooo->sttime.Hours), bcdToInt(ooo->sttime.Minutes), bcdToInt(ooo->sttime.Seconds & FILTER_SECS) );*/
+
 		 ooo->readHoursFromRTC(&hour);
 		 ooo->readMinutesFromRTC(&minute);
 		 ooo->readSecondsFromRTC(&second);
@@ -114,7 +119,7 @@ extern "C" void app_main(void)
 		 printf("Date: %d-%.2d-%.2d \n", year, month, date);
 		 //printf("EPOCH : %ld \n", ooo->getEpoch());
 		 //ooo->updateTimeFromEpoch(ooo->getEpoch());
-		 ooo->printAllRegs(false);
+		 ooo->printAllRegs(true);
 		 vTaskDelay( 1000 / portTICK_PERIOD_MS );
 	 }
 

@@ -17,26 +17,30 @@ RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
 
 }
 
-bool RTCDriver::isTimerWakeUp(bool updateRequired) {
-	// TODO This function shall be revised
+esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	esp_err_t ret;
 	uint8_t reg =0;
 	if(updateRequired == true) {
 		xSemaphoreTake(*(this->smph), portMAX_DELAY);
 		ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , &reg , 1);
 		xSemaphoreGive(*(this->smph));
-	}
-	else{
+		if(ret != ESP_OK)
+			return ret;
+	} else {
 		//register filled from internal structure variable
 		reg = this->sttime.Control2;
+		ret = ESP_OK;
 	}
 	// Checking the bit
 	if ((reg >> 3 & 0x1) == 1) {
 		// Timer wake up!
-		return true;
+		*bReturn = true;
+	}else{
+		*bReturn = false;
 	}
-	return false;
+	return ret;
 }
+
 
 esp_err_t RTCDriver::readAllRegsFromRTC(void) {
 	esp_err_t ret;
@@ -283,10 +287,10 @@ esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
 	else {
 		ret = ESP_OK;
 	}
-	printf("Data Content : \r");
+	printf("Data Content : \n");
 	uint8_t *p = (uint8_t *)(&(this->sttime));
 	for (uint8_t i= 0; i<(sizeof(_ttime)/sizeof(uint8_t)); i++) {
-		printf("%02X : %02X \n ", i, *(p+i) );
+		printf("0x%02X : %02X\n", i, *(p+i) );
 	}
 	return ret;
 
