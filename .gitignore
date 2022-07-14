@@ -1,2 +1,3 @@
 /build
 *.old
+git-conventional-commits.json
