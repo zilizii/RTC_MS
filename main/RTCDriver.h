@@ -110,21 +110,33 @@ typedef struct  __attribute__ ((packed)) {
 	uint8_t Timer_Mode;		// 0x11
 }_ttime;
 
+<<<<<<< HEAD
+=======
+//esp_err_t i2c_master_read_slave (i2c_port_t i2c_num, uint8_t Address, uint8_t Offset, uint8_t *data_rd, size_t size)
+//esp_err_t i2c_master_write_slave(i2c_port_t i2c_num, uint8_t Address, uint8_t Offset ,uint8_t *data_wr, size_t size)
+typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
+
+>>>>>>> main
 
 class RTCDriver {
 private:
 	SemaphoreHandle_t  * smph;
-	uint8_t _24_12 			= 0;
 	uint8_t intToBCD(uint8_t num);
 	uint8_t bcdToInt(uint8_t bcd);
-
+	fncPntr _fp_writei2c = nullptr;
+	fncPntr _fp_readi2c = nullptr;
 public:
 	// TODO sttime should be private
 	_ttime sttime;
+<<<<<<< HEAD
 	// TODO Check every function is necessary
 	// TODO implement internal structure update
 	// TODO Check possibility for running internal structure update without the RTC - Task in every 1 sec to update or ....
 	RTCDriver(SemaphoreHandle_t *);
+=======
+	//RTCDriver(SemaphoreHandle_t *);
+	RTCDriver(SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
+>>>>>>> main
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
 	esp_err_t writeTimeToRTC(void);

@@ -8,13 +8,19 @@
 #include "RTCDriver.h"
 
 
-RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
+/*RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
 	this->smph = Smpf;
 
 
 
 	// TODO Auto-generated constructor stub
 
+}*/
+
+RTCDriver::RTCDriver(SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) {
+	this->smph = Smpf;
+	this->_fp_readi2c = preadI2CFnc;
+	this->_fp_writei2c = pwriteI2CFnc;
 }
 
 esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
@@ -22,7 +28,7 @@ esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	uint8_t reg =0;
 	if(updateRequired == true) {
 		xSemaphoreTake(*(this->smph), portMAX_DELAY);
-		ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , &reg , 1);
+		ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , &reg , 1);
 		xSemaphoreGive(*(this->smph));
 		if(ret != ESP_OK)
 			return ret;
@@ -45,7 +51,7 @@ esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 esp_err_t RTCDriver::readAllRegsFromRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_ALL , (uint8_t *)(&(this->sttime)), sizeof(_ttime)/sizeof(uint8_t));
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_ALL , (uint8_t *)(&(this->sttime)), sizeof(_ttime)/sizeof(uint8_t));
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -53,7 +59,7 @@ esp_err_t RTCDriver::readAllRegsFromRTC(void) {
 esp_err_t RTCDriver::writeAllRegsToRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_ALL , (uint8_t *)(&(this->sttime)), sizeof(_ttime)/sizeof(uint8_t));
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_ALL , (uint8_t *)(&(this->sttime)), sizeof(_ttime)/sizeof(uint8_t));
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -61,7 +67,7 @@ esp_err_t RTCDriver::writeAllRegsToRTC(void) {
 esp_err_t RTCDriver::readTimeFromRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -70,7 +76,7 @@ esp_err_t RTCDriver::readTimeFromRTC(void) {
 esp_err_t RTCDriver::writeTimeToRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -82,7 +88,7 @@ esp_err_t RTCDriver::writeYearToRTC(uint16_t year) {
 	this->sttime.Year = _year;
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_YEAR , &_year , 1);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_YEAR , &_year , 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -90,7 +96,7 @@ esp_err_t RTCDriver::writeYearToRTC(uint16_t year) {
 esp_err_t RTCDriver::readYearFromRTC(uint16_t * year) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_YEAR , (uint8_t *)(&(this->sttime.Year)), 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_YEAR , (uint8_t *)(&(this->sttime.Year)), 1);
 	xSemaphoreGive(*(this->smph));
 	*year = RTCDriver::bcdToInt(this->sttime.Year & FILTER_YEAR);
 	*year += RTC_BIAS_YEAR;
@@ -103,7 +109,7 @@ esp_err_t RTCDriver::writeMonthToRTC(uint8_t month) {
 	_month = RTCDriver::intToBCD( month);
 	this->sttime.Month = _month;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MONTH , &_month , 1);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MONTH , &_month , 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -111,7 +117,7 @@ esp_err_t RTCDriver::writeMonthToRTC(uint8_t month) {
 esp_err_t RTCDriver::readMonthFromRTC(uint8_t *pmonth) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MONTH , (uint8_t *)(&(this->sttime.Month)), 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MONTH , (uint8_t *)(&(this->sttime.Month)), 1);
 	xSemaphoreGive(*(this->smph));
 	*pmonth = RTCDriver::bcdToInt(this->sttime.Month & FILTER_MONTH);
 	return ret;
@@ -124,7 +130,7 @@ esp_err_t RTCDriver::writeDateToRTC(uint8_t date) {
 	_date = RTCDriver::intToBCD( date);
 	this->sttime.Month = _date;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_DATE , &_date , 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_DATE , &_date , 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -132,7 +138,7 @@ esp_err_t RTCDriver::writeDateToRTC(uint8_t date) {
 esp_err_t RTCDriver::readDateFromRTC(uint8_t *pdate) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_DATE , (uint8_t *)(&(this->sttime.Date)), 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_DATE , (uint8_t *)(&(this->sttime.Date)), 1);
 	xSemaphoreGive(*(this->smph));
 	*pdate = RTCDriver::bcdToInt(this->sttime.Date & FILTER_DATE);
 	return ret;
@@ -144,7 +150,7 @@ esp_err_t RTCDriver::writeSecondsToRTC(uint8_t secs) {
 	_secs = RTCDriver::intToBCD(secs);
 	this->sttime.Seconds = _secs;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_SECS , &_secs , 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_SECS , &_secs , 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -152,7 +158,7 @@ esp_err_t RTCDriver::writeSecondsToRTC(uint8_t secs) {
 esp_err_t RTCDriver::readSecondsFromRTC(uint8_t *psecs) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_SECS , (uint8_t *)(&(this->sttime.Seconds)), 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_SECS , (uint8_t *)(&(this->sttime.Seconds)), 1);
 	xSemaphoreGive(*(this->smph));
 	*psecs = RTCDriver::bcdToInt(this->sttime.Seconds & FILTER_SECS);
 	return ret;
@@ -164,7 +170,7 @@ esp_err_t RTCDriver::writeMinutesToRTC(uint8_t mins) {
 	_mins = RTCDriver::intToBCD(mins);
 	this->sttime.Minutes = _mins;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MINS , &_mins , 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MINS , &_mins , 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -172,7 +178,7 @@ esp_err_t RTCDriver::writeMinutesToRTC(uint8_t mins) {
 esp_err_t RTCDriver::readMinutesFromRTC(uint8_t *pmins) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MINS, (uint8_t *)(&(this->sttime.Minutes)), 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_MINS, (uint8_t *)(&(this->sttime.Minutes)), 1);
 	xSemaphoreGive(*(this->smph));
 	*pmins = RTCDriver::bcdToInt(this->sttime.Minutes & FILTER_MINS);
 	return ret;
@@ -184,7 +190,7 @@ esp_err_t RTCDriver::writeHoursToRTC(uint8_t hours) {
 	_hours = RTCDriver::intToBCD(hours);
 	this->sttime.Hours = _hours;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_HOURS, &_hours, 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_HOURS, &_hours, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -192,7 +198,7 @@ esp_err_t RTCDriver::writeHoursToRTC(uint8_t hours) {
 esp_err_t RTCDriver::readHoursFromRTC(uint8_t *phours) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_HOURS , (uint8_t *)(&(this->sttime.Hours)), 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_HOURS , (uint8_t *)(&(this->sttime.Hours)), 1);
 	xSemaphoreGive(*(this->smph));
 	if(ESP_OK == ret)
 		*phours = RTCDriver::bcdToInt(this->sttime.Hours & FILTER_HOURS);
@@ -232,14 +238,14 @@ esp_err_t RTCDriver::writeTimeFromEpochToRTC(long epoch) {
 esp_err_t RTCDriver::readTimerValueFromRTC(uint8_t *pTimerValue) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_VALUE , pTimerValue, 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_VALUE , pTimerValue, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
 esp_err_t RTCDriver::writeTimerValueToRTC(uint8_t timerValue) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_VALUE, &timerValue, 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_VALUE, &timerValue, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -247,14 +253,14 @@ esp_err_t RTCDriver::writeTimerValueToRTC(uint8_t timerValue) {
 esp_err_t RTCDriver::readTimerModeFromRTC(uint8_t *pTimerMode) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_MODE , pTimerMode, 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_MODE , pTimerMode, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
 esp_err_t RTCDriver::writeTimerModeToRTC(uint8_t timerMode) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_MODE, &timerMode, 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_MODE, &timerMode, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -266,14 +272,14 @@ esp_err_t RTCDriver::writeTimerModeToRTC(uint8_t timerMode) {
 esp_err_t RTCDriver::readRAMFromRTC(uint8_t *pData) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = i2c_master_read_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_RAM , pData, 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_RAM , pData, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
 esp_err_t RTCDriver::writeRAMToRTC(uint8_t data) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret =  i2c_master_write_slave(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_RAM, &data, 1);
+	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_RAM, &data, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
