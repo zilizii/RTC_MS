@@ -108,6 +108,10 @@ typedef struct  __attribute__ ((packed)) {
 	uint8_t Weekday_Alarm;	// 0x0F
 	uint8_t Timer_Value;	// 0x10
 	uint8_t Timer_Mode;		// 0x11
+	uint8_t& operator[](std::size_t idx) {
+		return *(uint8_t*)((size_t)this + idx * sizeof(uint8_t));
+	}
+
 }_ttime;
 
 

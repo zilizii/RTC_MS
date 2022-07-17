@@ -100,7 +100,7 @@ extern "C" void app_main(void)
 	ooo->writeMonthToRTC(7);
 	ooo->writeDateToRTC(3);*/
 	//Timer Trial every 5 sec a
-	ooo->writeTimerValueToRTC(5);
+	ooo->writeTimerValueToRTC(3);
 	ooo->writeTimerModeToRTC(0b10111);
 
 	while(true) {
@@ -113,6 +113,13 @@ extern "C" void app_main(void)
 		 ooo->readMinutesFromRTC(&minute);
 		 ooo->readSecondsFromRTC(&second);
 		 printf("Time: %.2d:%.2d:%.2d \n", hour,minute,second );
+		 hour   = 66;
+		 minute = 66;
+		 second = 66;
+		 hour   = ooo->sttime[0x06];
+		 minute = ooo->sttime[0x05];
+		 second = ooo->sttime[0x04];
+		 printf("TIME: %.2d:%.2d:%.2d \n", hour,minute,second );
 		 ooo->readYearFromRTC(&year);
 		 ooo->readMonthFromRTC(&month);
 		 ooo->readDateFromRTC(&date);
