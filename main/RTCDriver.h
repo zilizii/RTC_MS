@@ -50,7 +50,7 @@ using namespace std;
 
 #define FILTER_TIMER_VALUE		0xFF
 
-#define EPOCH_YEAR				1900
+#define EPOCH_YEAR				CONFIG_EPOCH_YEAR
 #define EPOCH_BIAS_MONTH		1
 
 #define AIE						0x80 /*Alarm Interrupt Enable*/
@@ -87,7 +87,7 @@ using namespace std;
  * Stucture to store the RTC values in memory, Coded with BCD
  * */
 
-// TODO operator [] overload for struct
+// DONE operator [] overload for struct
 // TODO check c++ alternatives like std::array
 typedef struct  __attribute__ ((packed)) {
 	uint8_t	Control1;		// 0x00
@@ -117,6 +117,9 @@ typedef struct  __attribute__ ((packed)) {
 
 //esp_err_t i2c_master_read_slave (i2c_port_t i2c_num, uint8_t Address, uint8_t Offset, uint8_t *data_rd, size_t size)
 //esp_err_t i2c_master_write_slave(i2c_port_t i2c_num, uint8_t Address, uint8_t Offset ,uint8_t *data_wr, size_t size)
+
+// Typedef for the function pointers --> seems both the read and write use the similar definition...
+
 typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
 
 
@@ -132,17 +135,20 @@ public:
 	// TODO sttime should be private
 	_ttime sttime;
 
-	//RTCDriver(SemaphoreHandle_t *);
 	RTCDriver(SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
 
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
+
 	esp_err_t writeTimeToRTC(void);
 	esp_err_t readTimeFromRTC(void);
+
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
-	esp_err_t isTimerWakeUp(bool, bool *);
+
+
+
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
 	esp_err_t writeMonthToRTC(uint8_t);
@@ -157,6 +163,7 @@ public:
 	esp_err_t readHoursFromRTC(uint8_t *);
 
 	// Timer Functionality supporting implementation
+	esp_err_t isTimerWakeUp(bool, bool *);
 	esp_err_t readTimerValueFromRTC(uint8_t *);
 	esp_err_t writeTimerValueToRTC(uint8_t);
 	esp_err_t readTimerModeFromRTC(uint8_t *);

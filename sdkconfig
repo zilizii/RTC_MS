@@ -119,8 +119,14 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Example Configuration
+# RTC_MS
 #
+
+#
+# RV-8263-C7 RTC Driver
+#
+CONFIG_EPOCH_YEAR=1900
+# end of RV-8263-C7 RTC Driver
 
 #
 # I2C Master
@@ -139,7 +145,7 @@ CONFIG_I2C_SLAVE_SDA=4
 CONFIG_I2C_SLAVE_PORT_NUM=0
 CONFIG_I2C_SLAVE_ADDRESS=0x28
 # end of I2C Slave
-# end of Example Configuration
+# end of RTC_MS
 
 #
 # Compiler options

@@ -76,6 +76,7 @@ extern "C" void app_main(void)
 	esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month =0,date =0,hour =0,minute=0,second=0;
+	bool bRTCWakeUpByTimer;
 	nvs_flash_init();
 	i2c_mutex = xSemaphoreCreateBinary();
 	  if( i2c_mutex == NULL )
@@ -100,7 +101,7 @@ extern "C" void app_main(void)
 	ooo->writeMonthToRTC(7);
 	ooo->writeDateToRTC(3);*/
 	//Timer Trial every 5 sec a
-	ooo->writeTimerValueToRTC(3);
+	ooo->writeTimerValueToRTC(4);
 	ooo->writeTimerModeToRTC(0b10111);
 
 	while(true) {
@@ -127,6 +128,8 @@ extern "C" void app_main(void)
 		 //printf("EPOCH : %ld \n", ooo->getEpoch());
 		 //ooo->updateTimeFromEpoch(ooo->getEpoch());
 		 ooo->printAllRegs(true);
+		 ooo->isTimerWakeUp(false,&bRTCWakeUpByTimer);
+		 cout << bRTCWakeUpByTimer << endl;
 		 vTaskDelay( 1000 / portTICK_PERIOD_MS );
 	 }
 
