@@ -52,6 +52,7 @@ using namespace std;
 
 #define EPOCH_YEAR				CONFIG_EPOCH_YEAR
 #define EPOCH_BIAS_MONTH		1
+#define TIME_ZONE				CONFIG_TIME_ZONE
 
 #define AIE						0x80 /*Alarm Interrupt Enable*/
 #define AF						0x40 /*Alarm Flag*/
@@ -114,6 +115,11 @@ typedef struct  __attribute__ ((packed)) {
 
 }_ttime;
 
+typedef struct {
+	char command[255];
+	uint8_t ID;
+}_scommand;
+
 
 //esp_err_t i2c_master_read_slave (i2c_port_t i2c_num, uint8_t Address, uint8_t Offset, uint8_t *data_rd, size_t size)
 //esp_err_t i2c_master_write_slave(i2c_port_t i2c_num, uint8_t Address, uint8_t Offset ,uint8_t *data_wr, size_t size)
@@ -131,15 +137,20 @@ private:
 	uint8_t bcdToInt(uint8_t bcd);
 	fncPntr _fp_writei2c = nullptr;
 	fncPntr _fp_readi2c = nullptr;
+
+	QueueHandle_t queueCommand;
+	unsigned int topicSize = 10;
 public:
 	// TODO sttime should be private
 	_ttime sttime;
 
 	RTCDriver(SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
+	QueueHandle_t getCommandQueue(void);
 
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
-
+	esp_err_t readControl2Reg(uint8_t *);
+	esp_err_t writeControl2Reg(uint8_t);
 	esp_err_t writeTimeToRTC(void);
 	esp_err_t readTimeFromRTC(void);
 
