@@ -1,6 +1,6 @@
 # RV-8263-C7 RTC Helper Class Development Project
 
-This example demonstrates usage of C++ in ESP-IDF.
+This example demonstrates usage of automotive grade external I2C RTC in ESP-IDF environment.
 
 
 ## How to use example
@@ -8,13 +8,20 @@ This example demonstrates usage of C++ in ESP-IDF.
 ### Hardware Required
 
 This example should be able to run on any commonly available ESP32 development board.
-RTC RV-8263-C7 connected to SDA - GPIO 21 and SCL to GPIO 22
+RTC RV-8263-C7 connected to SDA - GPIO 18 (configurable) and SCL to GPIO 19 (configurable)
+
+
+
+
 
 ### Configure the project
 
 ```
 idf.py menuconfig
 ```
+Please use the 'I2C Config' menu to set SCL, SDA GPIO pins, I2C port and the frequency
+Please use the 'RTC_MS' menu to setup basic parameters of the RTC timer  
+
 
 ### Build and Flash
 
@@ -32,14 +39,7 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ```
 app_main starting
-Time: 04:53:16
-Date: 2022-07-03
-EPOCH : 1656823996
-Time: 04:53:17
-Date: 2022-07-03
-EPOCH : 1656823997
-Time: 04:53:18
-Date: 2022-07-03
-
-```
+Time: 22:55:33
+Date: 2022-09-17
+0
 

@@ -108,12 +108,10 @@ extern "C" void app_main(void)
 			 cout<< "i2c Read Failed" << endl;
 	}
 	cout << "app_main starting" << endl;
-	/*ooo->writeYearToRTC(2022);
-	ooo->writeMonthToRTC(7);
-	ooo->writeDateToRTC(3);*/
-	//Timer Trial every 5 sec a
-	ooo->writeTimerValueToRTC(4);
-	ooo->writeTimerModeToRTC(0b10111);
+
+	ooo->writeTimerValueToRTC(1);
+	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
+	ooo->writeTimerModeToRTC(0b11111);
 	xTaskCreate(RXtask, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
 
 	while(true) {
@@ -122,9 +120,6 @@ extern "C" void app_main(void)
 		 ooo->readMinutesFromRTC(&minute);
 		 ooo->readSecondsFromRTC(&second);
 		 printf("Time: %.2d:%.2d:%.2d \n", hour,minute,second );
-		 hour   = 66;
-		 minute = 66;
-		 second = 66;
 
 		 if(ooo->sttime[0x01] > 0 )
 		 {
@@ -143,15 +138,16 @@ extern "C" void app_main(void)
 				 ooo->writeTimeFromEpochToRTC(   (atol(x.command + 2)) );
 			 }
 		 }
+
 		 ooo->readYearFromRTC(&year);
 		 ooo->readMonthFromRTC(&month);
 		 ooo->readDateFromRTC(&date);
 		 printf("Date: %d-%.2d-%.2d \n", year, month, date);
 
-		 ooo->printAllRegs(true);
+		 //ooo->printAllRegs(true);
 
 
-		 ooo->isTimerWakeUp(false,&bRTCWakeUpByTimer);
+		 ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
 		 cout << bRTCWakeUpByTimer << endl;
 		 vTaskDelay( 1000 / portTICK_PERIOD_MS );
 	 }
@@ -185,9 +181,8 @@ void RXtask(void * parameters) {
 	    	data[rxBytes] = 0;
 	    	strcpy(rx.command, (char *)data);
 	    	xQueueSendToBack(queueCommand, &rx, portMAX_DELAY);
-
-	        ESP_LOGI(RX_TASK_TAG, "Read %d bytes: '%s'", rxBytes, data);
-	        ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
+//	        ESP_LOGI(RX_TASK_TAG, "Read %d bytes: '%s'", rxBytes, data);
+//	        ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
 	    }
 	}
 	free(data);
