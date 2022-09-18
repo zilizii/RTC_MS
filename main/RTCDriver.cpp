@@ -21,26 +21,54 @@ RTCDriver::RTCDriver(SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwrit
 	this->smph = Smpf;
 	this->_fp_readi2c = preadI2CFnc;
 	this->_fp_writei2c = pwriteI2CFnc;
+	queueCommand =  xQueueCreate(topicSize, sizeof(_scommand) );
 }
 
-bool RTCDriver::isTimerWakeUp(bool updateRequired) {
+QueueHandle_t RTCDriver::getCommandQueue(void) {
+	return this->queueCommand;
+}
+
+esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	esp_err_t ret;
 	uint8_t reg =0;
 	if(updateRequired == true) {
 		xSemaphoreTake(*(this->smph), portMAX_DELAY);
 		ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , &reg , 1);
 		xSemaphoreGive(*(this->smph));
-	}
-	else{
+		if(ret != ESP_OK)
+			return ret;
+	} else {
 		//register filled from internal structure variable
 		reg = this->sttime.Control2;
+		ret = ESP_OK;
 	}
 	// Checking the bit
 	if ((reg >> 3 & 0x1) == 1) {
 		// Timer wake up!
-		return true;
+		*bReturn = true;
+	}else{
+		*bReturn = false;
 	}
-	return false;
+	return ret;
+}
+
+esp_err_t RTCDriver::readControl2Reg(uint8_t * reg) {
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , reg , 1);
+	xSemaphoreGive(*(this->smph));
+	if(ret == ESP_OK) {
+		reg = &(this->sttime.Control2);
+	}
+	return ret;
+}
+
+esp_err_t RTCDriver::writeControl2Reg(uint8_t reg) {
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , &reg , 1);
+	xSemaphoreGive(*(this->smph));
+	return ret;
 }
 
 esp_err_t RTCDriver::readAllRegsFromRTC(void) {
@@ -71,7 +99,7 @@ esp_err_t RTCDriver::readTimeFromRTC(void) {
 esp_err_t RTCDriver::writeTimeToRTC(void) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIME , (uint8_t *)(&(this->sttime.Seconds)), 7 );
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
@@ -220,7 +248,7 @@ void RTCDriver::updateTimeFromEpoch(long epoch) {
 	this->sttime.Year		= RTCDriver::intToBCD( tm->tm_year + EPOCH_YEAR - RTC_BIAS_YEAR);
 	this->sttime.Month		= RTCDriver::intToBCD( tm->tm_mon  + EPOCH_BIAS_MONTH);
 	this->sttime.Date  		= RTCDriver::intToBCD( tm->tm_mday);
-	this->sttime.Hours		= RTCDriver::intToBCD( tm->tm_hour);
+	this->sttime.Hours		= RTCDriver::intToBCD( tm->tm_hour + TIME_ZONE);
 	this->sttime.Minutes	= RTCDriver::intToBCD( tm->tm_min);
 	this->sttime.Seconds	= RTCDriver::intToBCD( tm->tm_sec);
 }
@@ -242,6 +270,7 @@ esp_err_t RTCDriver::writeTimerValueToRTC(uint8_t timerValue) {
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
 	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_VALUE, &timerValue, 1);
 	xSemaphoreGive(*(this->smph));
+	this->sttime.Timer_Value = timerValue;
 	return ret;
 }
 
@@ -252,17 +281,15 @@ esp_err_t RTCDriver::readTimerModeFromRTC(uint8_t *pTimerMode) {
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
+
 esp_err_t RTCDriver::writeTimerModeToRTC(uint8_t timerMode) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
 	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_TIMER_MODE, &timerMode, 1);
 	xSemaphoreGive(*(this->smph));
+	this->sttime.Timer_Mode = timerMode;
 	return ret;
 }
-
-
-
-
 
 esp_err_t RTCDriver::readRAMFromRTC(uint8_t *pData) {
 	esp_err_t ret;
@@ -271,12 +298,31 @@ esp_err_t RTCDriver::readRAMFromRTC(uint8_t *pData) {
 	xSemaphoreGive(*(this->smph));
 	return ret;
 }
+
 esp_err_t RTCDriver::writeRAMToRTC(uint8_t data) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
 	ret =  this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_RAM, &data, 1);
 	xSemaphoreGive(*(this->smph));
 	return ret;
+}
+
+esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
+	esp_err_t ret;
+
+	if(updateRequired == true) {
+		ret = this->RTCDriver::readAllRegsFromRTC();
+	}
+	else {
+		ret = ESP_OK;
+	}
+	printf("Data Content : \n");
+	uint8_t *p = (uint8_t *)(&(this->sttime));
+	for (uint8_t i= 0; i<(sizeof(_ttime)/sizeof(uint8_t)); i++) {
+		printf("0x%02X : %02X\n", i, *(p+i) );
+	}
+	return ret;
+
 }
 
 RTCDriver::~RTCDriver() {

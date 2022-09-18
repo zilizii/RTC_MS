@@ -50,14 +50,46 @@ using namespace std;
 
 #define FILTER_TIMER_VALUE		0xFF
 
-#define EPOCH_YEAR				1900
+#define EPOCH_YEAR				CONFIG_EPOCH_YEAR
 #define EPOCH_BIAS_MONTH		1
+#define TIME_ZONE				CONFIG_TIME_ZONE
 
+#define AIE						0x80 /*Alarm Interrupt Enable*/
+#define AF						0x40 /*Alarm Flag*/
+#define MI						0x20 /*Minute Interrupt Enable*/
+#define HMI						0x10 /*Half Minute Interrupt Enable*/
+#define TF						0x08 /*Timer Flag*/
+#define FD 						0x07 /*CLKOUT Frequency*/
+
+#define FD_32kHz				0x00 /*32.768 kHz – Default value*/
+#define FD_16kHz				0x01 /*16.384 kHz*/
+#define FD_8kHz					0x02 /* 8.192 kHz*/
+#define FD_4kHz					0x03 /* 4.096 kHz*/
+#define FD_2kHz					0x04 /* 2.048 kHz*/
+#define FD_1kHz					0x05 /* 1.024 kHz*/
+#define FD_1Hz					0x06 /* 1      Hz*/
+#define FD_CLKOUT_LOW			0x07 /*CLKOUT = LOW*/
+
+#define TD						0x18 /*Timer Clock Frequency */
+#define TD_CHECK(x)				((x & TD) >> 3)
+#define TE						0x04 /*Timer Enable*/
+#define TE_CHECK(x)				((x & TE) >> 2)
+#define TIE						0x02 /*Timer Interrupt Enable*/
+#define TIE_CHECK(x)			((x & TIE) >> 1)
+#define TI_TP					0x01 /*Timer Interrupt Mode*/
+#define TI_TP_CHECK(x)			(x & TI_TP)
+
+#define TD_4kHz					0x00 /*4.096 kHz*/
+#define TD_64Hz					0x01 /*64     Hz*/
+#define TD_1Hz					0x02 /* 1     Hz*/
+#define TD_1_60Hz				0x03 /* 1/60  Hz - Default value*/
 
 /*
  * Stucture to store the RTC values in memory, Coded with BCD
  * */
 
+// DONE operator [] overload for struct
+// TODO check c++ alternatives like std::array
 typedef struct  __attribute__ ((packed)) {
 	uint8_t	Control1;		// 0x00
 	uint8_t	Control2;		// 0x01
@@ -77,11 +109,25 @@ typedef struct  __attribute__ ((packed)) {
 	uint8_t Weekday_Alarm;	// 0x0F
 	uint8_t Timer_Value;	// 0x10
 	uint8_t Timer_Mode;		// 0x11
+	uint8_t& operator[](std::size_t idx) {
+		return *(uint8_t*)((size_t)this + idx * sizeof(uint8_t));
+	}
+
 }_ttime;
+
+typedef struct {
+	char command[255];
+	uint8_t ID;
+}_scommand;
+
 
 //esp_err_t i2c_master_read_slave (i2c_port_t i2c_num, uint8_t Address, uint8_t Offset, uint8_t *data_rd, size_t size)
 //esp_err_t i2c_master_write_slave(i2c_port_t i2c_num, uint8_t Address, uint8_t Offset ,uint8_t *data_wr, size_t size)
+
+// Typedef for the function pointers --> seems both the read and write use the similar definition...
+
 typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
+
 
 
 class RTCDriver {
@@ -91,18 +137,29 @@ private:
 	uint8_t bcdToInt(uint8_t bcd);
 	fncPntr _fp_writei2c = nullptr;
 	fncPntr _fp_readi2c = nullptr;
+
+	QueueHandle_t queueCommand;
+	unsigned int topicSize = 10;
 public:
+	// TODO sttime should be private
 	_ttime sttime;
-	//RTCDriver(SemaphoreHandle_t *);
+
 	RTCDriver(SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
+	QueueHandle_t getCommandQueue(void);
+
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
+	esp_err_t readControl2Reg(uint8_t *);
+	esp_err_t writeControl2Reg(uint8_t);
 	esp_err_t writeTimeToRTC(void);
 	esp_err_t readTimeFromRTC(void);
+
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
-	bool isTimerWakeUp(bool);
+
+
+
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
 	esp_err_t writeMonthToRTC(uint8_t);
@@ -117,6 +174,7 @@ public:
 	esp_err_t readHoursFromRTC(uint8_t *);
 
 	// Timer Functionality supporting implementation
+	esp_err_t isTimerWakeUp(bool, bool *);
 	esp_err_t readTimerValueFromRTC(uint8_t *);
 	esp_err_t writeTimerValueToRTC(uint8_t);
 	esp_err_t readTimerModeFromRTC(uint8_t *);
@@ -125,6 +183,10 @@ public:
 	// RAM byte implementation
 	esp_err_t readRAMFromRTC(uint8_t *);
 	esp_err_t writeRAMToRTC(uint8_t);
+
+
+	//testing purpose functions
+	esp_err_t printAllRegs(bool);
 	virtual ~RTCDriver();
 };
 
