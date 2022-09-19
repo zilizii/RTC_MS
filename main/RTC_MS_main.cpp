@@ -109,9 +109,9 @@ extern "C" void app_main(void)
 	}
 	cout << "app_main starting" << endl;
 
-	ooo->writeTimerValueToRTC(1);
+	ooo->writeTimerValueToRTC(5);
 	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
-	ooo->writeTimerModeToRTC(0b11111);
+	ooo->writeTimerModeToRTC(0b11111); // 0b11111
 	xTaskCreate(RXtask, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
 
 	while(true) {
