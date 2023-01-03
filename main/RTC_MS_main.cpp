@@ -30,6 +30,8 @@
 #include "RTCDriver.h"
 #include <iostream>
 #include "sdkconfig.h"
+#include "lwip/err.h"
+#include "lwip/sys.h"
 
 using std::cout;
 using std::endl;
@@ -63,14 +65,7 @@ protected:
     int m_arg;
 };
 
-/*static uint8_t intToBCD(uint8_t num) {
-	return ((num / 10) << 4) | (num%10);
-}
 
-static uint8_t bcdToInt(uint8_t bcd) {
-	// 0x10
-	return ((bcd >> 4) * 10) + (bcd & 0x0f);;
-}*/
 SemaphoreHandle_t i2c_mutex;
 //RTCDriver ooo;
 void RXtask(void * parameters);
@@ -203,4 +198,14 @@ void initUART(void) {
 		//vTaskDelete(NULL);
 	}
 	uart_param_config(UART_NUM_0, &uart_config);
+}
+
+void WifiConnectionTask(void * parameters) {
+    wifi_sta_config_t sta = {};
+    //strcpy((char*)sta.ssid, CONFIG_WIFI_SSID);
+    //strcpy((char*)sta.password, CONFIG_WIFI_PASSWORD);
+    sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    wifi_config_t wifi_config = {};
+    wifi_config.sta = sta;
+
 }

@@ -244,7 +244,7 @@ long RTCDriver::getEpoch(void) {
 void RTCDriver::updateTimeFromEpoch(long epoch) {
 	struct tm *tm;
 	tm = gmtime( &epoch );
-	//cout <<" This is: "<< tm->tm_year + EPOCH_YEAR <<"-"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"-"<<tm->tm_mday<<" "<<tm->tm_hour<<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
+	//cout <<" This is: Y:"<< tm->tm_year <<"- M:"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"- D: "<<tm->tm_mday<<" T "<<tm->tm_hour + TIME_ZONE <<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
 	this->sttime.Year		= RTCDriver::intToBCD( tm->tm_year + EPOCH_YEAR - RTC_BIAS_YEAR);
 	this->sttime.Month		= RTCDriver::intToBCD( tm->tm_mon  + EPOCH_BIAS_MONTH);
 	this->sttime.Date  		= RTCDriver::intToBCD( tm->tm_mday);
