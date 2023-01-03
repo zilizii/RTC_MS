@@ -8,7 +8,7 @@ menu "RTC_MS"
 				
 		config TIME_ZONE
 			int "Time Zone"
-			default 0
+			default 1
 			help
 				Adjust according to GMT
 	endmenu
