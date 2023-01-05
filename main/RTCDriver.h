@@ -84,6 +84,8 @@ using namespace std;
 #define TD_1Hz					0x02 /* 1     Hz*/
 #define TD_1_60Hz				0x03 /* 1/60  Hz - Default value*/
 
+#define HOURS_SECS				3600
+
 /*
  * Stucture to store the RTC values in memory, Coded with BCD
  * */
@@ -155,9 +157,10 @@ public:
 	esp_err_t readTimeFromRTC(void);
 
 	long getEpoch(void);
-	void updateTimeFromEpoch(long);
-	esp_err_t writeTimeFromEpochToRTC(long);
-	void setTimeZone(int8_t);
+	long getEpochUTC(void);
+	void updateTimeFromEpoch(long, bool = true);
+	esp_err_t writeTimeFromEpochToRTC(long, bool = true);
+	void setTimeZone(int8_t, bool = false);
 	int8_t getTimeZone(void);
 
 

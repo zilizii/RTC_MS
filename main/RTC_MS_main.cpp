@@ -128,9 +128,27 @@ extern "C" void app_main(void)
 		 qL = uxQueueMessagesWaiting(ooo->getCommandQueue());
 		 for(int i = 0; i< qL; i++) {
 			 xQueueReceive(ooo->getCommandQueue(),&x,portMAX_DELAY);
-			 if (x.command[0] == 'S') {
-				 ESP_LOGI("OMG", "Read %d bytes: '%s'", sizeof(x.command)/sizeof(char), x.command);
+			 if (x.command[0] == 'S' && x.command[1] == 'E'){
+				 ESP_LOGI("SET UTC EPOCH", "Read %d bytes: '%s' \n", sizeof(x.command)/sizeof(char), x.command);
 				 ooo->writeTimeFromEpochToRTC(   (atol(x.command + 2)) );
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'E'){
+				 printf("GET UTC EPOCH : %ld \n", ooo->getEpochUTC() );
+			 }
+			 else if (x.command[0] == 'S' && x.command[1] == 'L'){
+				 ESP_LOGI("SET Local EPOCH", "Read %d bytes: '%s' \n", sizeof(x.command)/sizeof(char), x.command);
+				 ooo->writeTimeFromEpochToRTC(   (atol(x.command + 2)), false );
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'L'){
+			 	 printf("GET LOCAL EPOCH : %ld \n", ooo->getEpoch() );
+			 }
+
+			 else if (x.command[0] == 'S' && x.command[1] == 'T') {
+			 	 ESP_LOGI("SET TIME ZONE : ", "Read %d bytes: '%s' \n", sizeof(x.command)/sizeof(char), x.command);
+			 	 ooo->setTimeZone( atoi(x.command + 2), true);
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'T') {
+ 				 printf("GET Time Zone : %d \n", ooo->getTimeZone());
 			 }
 		 }
 

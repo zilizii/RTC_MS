@@ -52,9 +52,25 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ### UART Commands
 
-S+epoch set the epoch of the RTC module. For ex.: https://www.epochconverter.com/ can be used. Check the time zone as well.
+`SE+epoch` set the UTC epoch of the RTC module. For ex.: [epochconverter](https://www.epochconverter.com/) can be used. Check the time zone as well.  
+example : SE1672944185  
 
-## Example Output
+`GE` read back the UTC epoch time.  
+example : GE  
+ 
+`ST+TimeZone` set timezone and adjust the time as well.   
+example : ST1  
+
+`GT` give back the Time Zone setting.  
+example : GT  
+
+`SL+epoch` set the local epoch - no Time Zone correction.  
+example : SL1672944185  
+
+`GL` give back the local epoch.  
+example : GL  
+
+## Example Output  
 
 ```
 app_main starting
