@@ -137,7 +137,7 @@ private:
 	uint8_t bcdToInt(uint8_t bcd);
 	fncPntr _fp_writei2c = nullptr;
 	fncPntr _fp_readi2c = nullptr;
-
+    int8_t _timeZone = TIME_ZONE;
 	QueueHandle_t queueCommand;
 	unsigned int topicSize = 10;
 public:
@@ -157,7 +157,8 @@ public:
 	long getEpoch(void);
 	void updateTimeFromEpoch(long);
 	esp_err_t writeTimeFromEpochToRTC(long);
-
+	void setTimeZone(int8_t);
+	int8_t getTimeZone(void);
 
 
 	esp_err_t writeYearToRTC(uint16_t);

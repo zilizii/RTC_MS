@@ -243,12 +243,13 @@ long RTCDriver::getEpoch(void) {
 
 void RTCDriver::updateTimeFromEpoch(long epoch) {
 	struct tm *tm;
-	tm = gmtime( &epoch );
+	long e = epoch + ( (long)this->_timeZone * 3600);
+	tm = gmtime( &e);
 	//cout <<" This is: Y:"<< tm->tm_year <<"- M:"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"- D: "<<tm->tm_mday<<" T "<<tm->tm_hour + TIME_ZONE <<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
 	this->sttime.Year		= RTCDriver::intToBCD( tm->tm_year + EPOCH_YEAR - RTC_BIAS_YEAR);
 	this->sttime.Month		= RTCDriver::intToBCD( tm->tm_mon  + EPOCH_BIAS_MONTH);
 	this->sttime.Date  		= RTCDriver::intToBCD( tm->tm_mday);
-	this->sttime.Hours		= RTCDriver::intToBCD( tm->tm_hour + TIME_ZONE);
+	this->sttime.Hours		= RTCDriver::intToBCD( tm->tm_hour);
 	this->sttime.Minutes	= RTCDriver::intToBCD( tm->tm_min);
 	this->sttime.Seconds	= RTCDriver::intToBCD( tm->tm_sec);
 }
@@ -338,3 +339,10 @@ uint8_t RTCDriver::bcdToInt(uint8_t bcd) {
 	return ((bcd >> 4) * 10) + (bcd & 0x0f);;
 }
 
+void RTCDriver::setTimeZone(int8_t timeZone) {
+	this->_timeZone = timeZone;
+}
+
+int8_t RTCDriver::getTimeZone(void) {
+	return this->_timeZone;
+}
