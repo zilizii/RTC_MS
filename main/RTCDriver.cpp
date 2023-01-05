@@ -238,12 +238,20 @@ long RTCDriver::getEpoch(void) {
 	t.tm_hour = RTCDriver::bcdToInt(this->sttime.Hours & FILTER_HOURS);
 	t.tm_min  = RTCDriver::bcdToInt(this->sttime.Minutes & FILTER_MINS);
 	t.tm_sec  = RTCDriver::bcdToInt(this->sttime.Seconds & FILTER_SECS);
-	return mktime(&t);
+	return mktime(&t) ;
 }
 
-void RTCDriver::updateTimeFromEpoch(long epoch) {
+
+long RTCDriver::getEpochUTC(void) {
+	return (RTCDriver::getEpoch() - ((long)(this->_timeZone) * HOURS_SECS));
+}
+
+void RTCDriver::updateTimeFromEpoch(long epoch, bool timeZoneUpdateReq) {
 	struct tm *tm;
-	long e = epoch + ( (long)this->_timeZone * 3600);
+	long e = epoch;
+	if(timeZoneUpdateReq == true) {
+		e +=  ((long)this->_timeZone * HOURS_SECS);
+	}
 	tm = gmtime( &e);
 	//cout <<" This is: Y:"<< tm->tm_year <<"- M:"<< tm->tm_mon + EPOCH_BIAS_MONTH<<"- D: "<<tm->tm_mday<<" T "<<tm->tm_hour + TIME_ZONE <<"-"<<tm->tm_min<<"-"<<tm->tm_sec<<endl;
 	this->sttime.Year		= RTCDriver::intToBCD( tm->tm_year + EPOCH_YEAR - RTC_BIAS_YEAR);
@@ -254,8 +262,8 @@ void RTCDriver::updateTimeFromEpoch(long epoch) {
 	this->sttime.Seconds	= RTCDriver::intToBCD( tm->tm_sec);
 }
 
-esp_err_t RTCDriver::writeTimeFromEpochToRTC(long epoch) {
-	RTCDriver::updateTimeFromEpoch(epoch);
+esp_err_t RTCDriver::writeTimeFromEpochToRTC(long epoch, bool timeZoneUpdateReq) {
+	RTCDriver::updateTimeFromEpoch(epoch, timeZoneUpdateReq);
 	return RTCDriver::writeTimeToRTC();
 }
 
@@ -339,8 +347,19 @@ uint8_t RTCDriver::bcdToInt(uint8_t bcd) {
 	return ((bcd >> 4) * 10) + (bcd & 0x0f);;
 }
 
-void RTCDriver::setTimeZone(int8_t timeZone) {
-	this->_timeZone = timeZone;
+void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
+
+	if(timeupdate == true)
+	{
+		long epoch;
+		epoch = this->getEpochUTC();
+		this->_timeZone = timeZone;
+		this->writeTimeFromEpochToRTC(epoch);
+	}
+	else
+	{
+		this->_timeZone = timeZone;
+	}
 }
 
 int8_t RTCDriver::getTimeZone(void) {
