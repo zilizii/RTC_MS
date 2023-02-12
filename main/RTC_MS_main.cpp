@@ -33,10 +33,18 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+
+#include "esp_event_loop.h"
+
+
+
 using std::cout;
 using std::endl;
 using std::runtime_error;
 
+#define MAXIMUM_AP 20
 
 static const char *TAG = "RT_MS";
 static const int RX_BUF_SIZE = 256;
@@ -70,6 +78,30 @@ SemaphoreHandle_t i2c_mutex;
 //RTCDriver ooo;
 void RXtask(void * parameters);
 void initUART(void);
+TaskHandle_t WifiSCANTaskt;
+void WifiSCANTask(void * parameters);
+
+static esp_err_t event_handler(void * ctx, system_event_t *event) {
+  return ESP_OK;
+}
+
+void wifiInit() {
+  ESP_ERROR_CHECK(nvs_flash_init());
+  tcpip_adapter_init();
+  ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+
+  wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
+  ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
+  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+  ESP_ERROR_CHECK(esp_wifi_start());
+
+}
+
+static char *auth_mode_type(wifi_auth_mode_t auth_mode)
+{
+  char *types[] = {"OPEN", "WEP", "WPA PSK", "WPA2 PSK", "WPA WPA2 PSK", "MAX"};
+  return types[auth_mode];
+}
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void)
@@ -80,7 +112,12 @@ extern "C" void app_main(void)
 	uint8_t counter = 0;
 	int qL = 0;
 	bool bRTCWakeUpByTimer;
-	nvs_flash_init();
+
+	//ESP_ERROR_CHECK(nvs_flash_init());
+	wifiInit();
+
+
+
 	_scommand x;
 	initUART();
 	i2c_mutex = xSemaphoreCreateBinary();
@@ -150,6 +187,10 @@ extern "C" void app_main(void)
 			 else if (x.command[0] == 'G' && x.command[1] == 'T') {
  				 printf("GET Time Zone : %d \n", ooo->getTimeZone());
 			 }
+			 else if (x.command[0] == 'W' && x.command[1] == 'S') {
+				 xTaskCreate(WifiSCANTask, "ScanTask", 1024*4, NULL, 5, &WifiSCANTaskt);
+
+			 }
 		 }
 
 		 ooo->readYearFromRTC(&year);
@@ -218,12 +259,33 @@ void initUART(void) {
 	uart_param_config(UART_NUM_0, &uart_config);
 }
 
-void WifiConnectionTask(void * parameters) {
-    wifi_sta_config_t sta = {};
-    //strcpy((char*)sta.ssid, CONFIG_WIFI_SSID);
-    //strcpy((char*)sta.password, CONFIG_WIFI_PASSWORD);
-    sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-    wifi_config_t wifi_config = {};
-    wifi_config.sta = sta;
+void WifiSCANTask(void * parameters) {
+	printf("WifiSCANTask Called\n");
+	wifi_scan_config_t scan_config ;
+	memset(&scan_config,0, sizeof(scan_config));
 
+
+
+	scan_config.ssid = NULL;
+	scan_config.bssid = NULL;
+	scan_config.channel = 0;
+	scan_config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+	scan_config.show_hidden = true;
+
+	ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
+	printf("WifiSCANTask done \n");
+	  wifi_ap_record_t wifi_records[MAXIMUM_AP];
+
+	  uint16_t max_records = MAXIMUM_AP;
+	  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&max_records, wifi_records));
+
+	  printf("Number of Access Points Found: %d\n", max_records);
+	  printf("\n");
+	  printf("               SSID              | Channel | RSSI |   Authentication Mode \n");
+	  printf("***************************************************************\n");
+	  for (int i = 0; i < max_records; i++)
+	    printf("%32s | %7d | %4d | %12s\n", (char *)wifi_records[i].ssid, wifi_records[i].primary, wifi_records[i].rssi, auth_mode_type(wifi_records[i].authmode));
+	  printf("***************************************************************\n");
+	  //vTaskDelay(1000);
+	  vTaskDelete(WifiSCANTaskt);
 }
