@@ -36,8 +36,8 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 
-#include "esp_event_loop.h"
-
+//#include "esp_event_loop.h"
+#include "esp_event.h"
 
 
 using std::cout;
@@ -78,23 +78,62 @@ SemaphoreHandle_t i2c_mutex;
 //RTCDriver ooo;
 void RXtask(void * parameters);
 void initUART(void);
-TaskHandle_t WifiSCANTaskt;
-void WifiSCANTask(void * parameters);
+//TaskHandle_t WifiSCANTaskt;
+//void WifiSCANTask(void * parameters);
 
-static esp_err_t event_handler(void * ctx, system_event_t *event) {
-  return ESP_OK;
+static void scan_done_handler(void)
+{
+    uint16_t sta_number = 0;
+    uint8_t i;
+    wifi_ap_record_t *ap_list_buffer;
+
+    esp_wifi_scan_get_ap_num(&sta_number);
+    ap_list_buffer =  (wifi_ap_record_t *)(malloc(sta_number * sizeof(wifi_ap_record_t)));
+    if (ap_list_buffer == NULL) {
+        ESP_LOGE(TAG, "Failed to malloc buffer to print scan results");
+        return;
+    }
+
+    if (esp_wifi_scan_get_ap_records(&sta_number, (wifi_ap_record_t *)ap_list_buffer) == ESP_OK) {
+        for (i = 0; i < sta_number; i++) {
+            ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5]);
+        }
+    }
+    free(ap_list_buffer);
 }
 
+static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+                                int32_t event_id, void* event_data){
+	//TODO: extend with events
+	 switch (event_id) {
+	    case WIFI_EVENT_SCAN_DONE:
+	        scan_done_handler();
+	        ESP_LOGI(TAG, "sta scan done");
+	        break;
+	    default:
+	        break;
+	    }
+	    return;
+
+}
+
+/*
+ * Wifi Init Function
+ * Support to testing Scan functionality
+ * old tcpip removed
+ */
+
 void wifiInit() {
-  ESP_ERROR_CHECK(nvs_flash_init());
-  tcpip_adapter_init();
-  ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
-
-  wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
-  ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
-  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-  ESP_ERROR_CHECK(esp_wifi_start());
-
+	ESP_ERROR_CHECK(nvs_flash_init());
+	ESP_ERROR_CHECK(esp_netif_init());
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
+	esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+	assert(sta_netif);
+	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+	wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
 static char *auth_mode_type(wifi_auth_mode_t auth_mode)
@@ -113,10 +152,7 @@ extern "C" void app_main(void)
 	int qL = 0;
 	bool bRTCWakeUpByTimer;
 
-	//ESP_ERROR_CHECK(nvs_flash_init());
 	wifiInit();
-
-
 
 	_scommand x;
 	initUART();
@@ -146,12 +182,18 @@ extern "C" void app_main(void)
 	ooo->writeTimerModeToRTC(0b11111); // 0b11111
 	xTaskCreate(RXtask, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
 
-	while(true) {
+	wifi_scan_config_t scan_config ;
+	memset(&scan_config,0, sizeof(scan_config));
+	scan_config.ssid = NULL;
+	scan_config.bssid = NULL;
+	scan_config.channel = 0;
+	scan_config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+	scan_config.show_hidden = true;
+// Wake up reason check
+	ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
+	cout << bRTCWakeUpByTimer << endl;
 
-		 ooo->readHoursFromRTC(&hour);
-		 ooo->readMinutesFromRTC(&minute);
-		 ooo->readSecondsFromRTC(&second);
-		 printf("Time: %.2d:%.2d:%.2d \n", hour,minute,second );
+	while(true) {
 
 		 if(ooo->sttime[0x01] > 0 )
 		 {
@@ -188,22 +230,29 @@ extern "C" void app_main(void)
  				 printf("GET Time Zone : %d \n", ooo->getTimeZone());
 			 }
 			 else if (x.command[0] == 'W' && x.command[1] == 'S') {
-				 xTaskCreate(WifiSCANTask, "ScanTask", 1024*4, NULL, 5, &WifiSCANTaskt);
-
+				 	ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'N') {
+				 ooo->readHoursFromRTC(&hour);
+				 ooo->readMinutesFromRTC(&minute);
+				 ooo->readSecondsFromRTC(&second);
+				 printf("Time: %.2d:%.2d:%.2d \n", hour,minute,second );
+				 ooo->readYearFromRTC(&year);
+				 ooo->readMonthFromRTC(&month);
+				 ooo->readDateFromRTC(&date);
+				 printf("Date: %d-%.2d-%.2d \n", year, month, date);
+				 ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
+				 cout << bRTCWakeUpByTimer << endl;
 			 }
 		 }
 
-		 ooo->readYearFromRTC(&year);
-		 ooo->readMonthFromRTC(&month);
-		 ooo->readDateFromRTC(&date);
-		 printf("Date: %d-%.2d-%.2d \n", year, month, date);
+
 
 		 //ooo->printAllRegs(true);
 
 
-		 ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
-		 cout << bRTCWakeUpByTimer << endl;
-		 vTaskDelay( 1000 / portTICK_PERIOD_MS );
+
+		 //vTaskDelay( 1000 / portTICK_PERIOD_MS );
 	 }
 
 
@@ -250,7 +299,7 @@ void initUART(void) {
 	        .parity = UART_PARITY_DISABLE,
 	        .stop_bits = UART_STOP_BITS_1,
 	        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-			.rx_flow_ctrl_thresh = 122,
+			.rx_flow_ctrl_thresh = 122
 	};
 	if (uart_driver_install(UART_NUM_0, 2*1024, 0, 0, NULL, 0) != ESP_OK) {
 		ESP_LOGE(TAG, "Driver installation failed");
@@ -259,7 +308,7 @@ void initUART(void) {
 	uart_param_config(UART_NUM_0, &uart_config);
 }
 
-void WifiSCANTask(void * parameters) {
+/*void WifiSCANTask(void * parameters) {
 	printf("WifiSCANTask Called\n");
 	wifi_scan_config_t scan_config ;
 	memset(&scan_config,0, sizeof(scan_config));
@@ -272,20 +321,24 @@ void WifiSCANTask(void * parameters) {
 	scan_config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
 	scan_config.show_hidden = true;
 
-	ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
+	ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
 	printf("WifiSCANTask done \n");
-	  wifi_ap_record_t wifi_records[MAXIMUM_AP];
+	wifi_ap_record_t wifi_records[MAXIMUM_AP];
 
-	  uint16_t max_records = MAXIMUM_AP;
-	  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&max_records, wifi_records));
+	uint16_t max_records = MAXIMUM_AP;
+	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&max_records, wifi_records));
 
-	  printf("Number of Access Points Found: %d\n", max_records);
-	  printf("\n");
-	  printf("               SSID              | Channel | RSSI |   Authentication Mode \n");
-	  printf("***************************************************************\n");
-	  for (int i = 0; i < max_records; i++)
+
+	printf("Number of Access Points Found: %d\n", max_records);
+	printf("\n");
+	printf("               SSID              | Channel | RSSI |   Authentication Mode \n");
+	printf("***************************************************************\n");
+	for (int i = 0; i < max_records; i++) {
 	    printf("%32s | %7d | %4d | %12s\n", (char *)wifi_records[i].ssid, wifi_records[i].primary, wifi_records[i].rssi, auth_mode_type(wifi_records[i].authmode));
-	  printf("***************************************************************\n");
-	  //vTaskDelay(1000);
-	  vTaskDelete(WifiSCANTaskt);
-}
+	}
+	printf("***************************************************************\n");
+
+	vTaskDelete(WifiSCANTaskt);
+}*/
+
+
