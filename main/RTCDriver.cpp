@@ -8,6 +8,21 @@
 #include "RTCDriver.h"
 
 
+std::ostream& operator<<(std::ostream& os, eTimeClockFreq e)
+{
+	switch(e)
+	{
+	case _4kHz : os << "4kHz";    break;
+	case _64Hz : os << "64Hz";    break;
+	case sec   : os << "Second ";    break;
+	case Min   : os << "Minute";    break;
+	default	   : os << "FUCK";
+	}
+	return os;
+}
+
+
+
 /*RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
 	this->smph = Smpf;
 
@@ -365,3 +380,5 @@ void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 int8_t RTCDriver::getTimeZone(void) {
 	return this->_timeZone;
 }
+
+

@@ -10,6 +10,7 @@ using namespace std;
 #define MAIN_RTCDRIVER_H_
 #include <cstring>
 #include <iostream>
+#include <map>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -85,6 +86,12 @@ using namespace std;
 #define TD_1_60Hz				0x03 /* 1/60  Hz - Default value*/
 
 #define HOURS_SECS				3600
+
+enum eTimeClockFreq { _4kHz = TD_4kHz, _64Hz = TD_64Hz,  sec = TD_1Hz,  Min =  TD_1_60Hz};
+
+std::ostream& operator<<(std::ostream& os, eTimeClockFreq e);
+
+
 
 /*
  * Stucture to store the RTC values in memory, Coded with BCD

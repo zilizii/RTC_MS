@@ -51,6 +51,8 @@ static const int RX_BUF_SIZE = 256;
 QueueHandle_t queueCommand;
 
 
+
+
 /* A simple class which may throw an exception from constructor */
 class Throwing
 {
@@ -191,7 +193,6 @@ extern "C" void app_main(void)
 	scan_config.show_hidden = true;
 // Wake up reason check
 	ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
-	cout << bRTCWakeUpByTimer << endl;
 
 	while(true) {
 
@@ -212,6 +213,7 @@ extern "C" void app_main(void)
 				 ooo->writeTimeFromEpochToRTC(   (atol(x.command + 2)) );
 			 }
 			 else if (x.command[0] == 'G' && x.command[1] == 'E'){
+				 ooo->readAllRegsFromRTC();
 				 printf("GET UTC EPOCH : %ld \n", ooo->getEpochUTC() );
 			 }
 			 else if (x.command[0] == 'S' && x.command[1] == 'L'){
@@ -242,7 +244,16 @@ extern "C" void app_main(void)
 				 ooo->readDateFromRTC(&date);
 				 printf("Date: %d-%.2d-%.2d \n", year, month, date);
 				 ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
-				 cout << bRTCWakeUpByTimer << endl;
+				 cout << "Wake Up by Timer : " << bRTCWakeUpByTimer << endl;
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'A') {
+				 uint8_t timerValue = 0;
+				 uint8_t timerMode = 0;
+				 ESP_ERROR_CHECK(ooo->readTimerValueFromRTC(&timerValue));
+				 ESP_ERROR_CHECK(ooo->readTimerModeFromRTC(&timerMode));
+				 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(timerMode));
+				 cout << unsigned(timerValue) << " " << val << endl;
+
 			 }
 		 }
 
@@ -252,7 +263,7 @@ extern "C" void app_main(void)
 
 
 
-		 //vTaskDelay( 1000 / portTICK_PERIOD_MS );
+		 vTaskDelay( 10 / portTICK_PERIOD_MS );
 	 }
 
 
