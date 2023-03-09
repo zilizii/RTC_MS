@@ -53,27 +53,53 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ### UART Commands
 
 `SE+epoch` set the UTC epoch of the RTC module. For ex.: [epochconverter](https://www.epochconverter.com/) can be used. Check the time zone as well.  
-example : SE1672944185  
+example command: SE1672944185  
 
 `GE` read back the UTC epoch time.  
-example : GE  
+example command: GE  
+example output : 
+GET UTC EPOCH : 1678402333
  
 `ST+TimeZone` set timezone and adjust the time as well.   
 example : ST1  
 
 `GT` give back the Time Zone setting.  
-example : GT  
+example command : GT  
+example output : 
+GET Time Zone : 1
 
 `SL+epoch` set the local epoch - no Time Zone correction.  
 example : SL1672944185  
 
 `GL` give back the local epoch.  
-example : GL  
+example command: GL
+example output : 
+GET LOCAL EPOCH : 1678405837  
+
+'GN' get the current local Date and Time and the state of the Wake Up Timer
+example command: GN
+example output : 
+Time: 23:50:37
+Date: 2023-03-09
+Wake Up by Timer : 0
+
+'GC' get the remaining counter value with the time unit
+example command: GC
+example output : 
+1 Minute
+
+'WS' scanning the Wifi AP
+example command : WS
+example output :
+I (270591) RT_MS: [ESP_446B71][rssi=-27][MAC=30:AE:A4:44:6B:71]
+I (270591) RT_MS: [][rssi=-73][MAC=38:31:BF:F4:BB:58]
+I (270591) RT_MS: [UPC1819346][rssi=-74][MAC=34:2C:C4:AB:FF:F0]
+I (270601) RT_MS: [UPCD198CFD][rssi=-92][MAC=90:5C:44:9B:51:DE]
+I (270601) RT_MS: sta scan done
+
 
 ## Example Output  
 
 ```
 app_main starting
-Time: 22:55:33
-Date: 2022-09-17
-0
+Wake Up by Timer : 1

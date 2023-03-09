@@ -193,6 +193,7 @@ extern "C" void app_main(void)
 	scan_config.show_hidden = true;
 // Wake up reason check
 	ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
+	cout << "Wake Up by Timer : " << bRTCWakeUpByTimer << endl;
 
 	while(true) {
 
@@ -246,7 +247,7 @@ extern "C" void app_main(void)
 				 ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
 				 cout << "Wake Up by Timer : " << bRTCWakeUpByTimer << endl;
 			 }
-			 else if (x.command[0] == 'G' && x.command[1] == 'A') {
+			 else if (x.command[0] == 'G' && x.command[1] == 'C') {
 				 uint8_t timerValue = 0;
 				 uint8_t timerMode = 0;
 				 ESP_ERROR_CHECK(ooo->readTimerValueFromRTC(&timerValue));
