@@ -21,17 +21,6 @@ std::ostream& operator<<(std::ostream& os, eTimeClockFreq e)
 	return os;
 }
 
-
-
-/*RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
-	this->smph = Smpf;
-
-
-
-	// TODO Auto-generated constructor stub
-
-}*/
-
 RTCDriver::RTCDriver(SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) {
 	this->smph = Smpf;
 	this->_fp_readi2c = preadI2CFnc;
@@ -351,6 +340,7 @@ esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
 
 RTCDriver::~RTCDriver() {
 	// TODO Auto-generated destructor stub
+	vQueueDelete(queueCommand);
 }
 
 uint8_t RTCDriver::intToBCD(uint8_t num) {
@@ -364,6 +354,8 @@ uint8_t RTCDriver::bcdToInt(uint8_t bcd) {
 
 void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 
+	// in case of update requires the EPOCH shall be read out with the old TimeZone settings
+	// before re-calculated with the new TimeZone value.
 	if(timeupdate == true)
 	{
 		long epoch;
