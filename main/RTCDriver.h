@@ -148,7 +148,7 @@ private:
 	fncPntr _fp_readi2c = nullptr;
     int8_t _timeZone = TIME_ZONE;
 	QueueHandle_t queueCommand;
-	unsigned int topicSize = 10;
+	unsigned int topicSize = CONFIG_TOPIC_SIZE;
 public:
 	// TODO sttime should be private
 	_ttime sttime;

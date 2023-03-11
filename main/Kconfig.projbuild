@@ -5,7 +5,11 @@ menu "RTC_MS"
 			default 1970
 			help
 				The Year where the EPOCH started
-				
+		config TOPIC_SIZE
+		    int "Queue Size"
+		    default 10
+		    help
+		    	Adjust the Command Queue size  		
 		config TIME_ZONE
 			int "Time Zone"
 			default 1

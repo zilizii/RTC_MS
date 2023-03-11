@@ -12,11 +12,11 @@ std::ostream& operator<<(std::ostream& os, eTimeClockFreq e)
 {
 	switch(e)
 	{
-	case _4kHz : os << "4kHz";    break;
-	case _64Hz : os << "64Hz";    break;
-	case sec   : os << "Second ";    break;
-	case Min   : os << "Minute";    break;
-	default	   : os << "FUCK";
+		case _4kHz : os << "4kHz";    	break;
+		case _64Hz : os << "64Hz";    	break;
+		case sec   : os << "Second ";   break;
+		case Min   : os << "Minute";    break;
+		default	   : throw std::out_of_range("The eTimeClockFreq enumerator used with unknown value");
 	}
 	return os;
 }

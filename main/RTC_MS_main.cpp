@@ -23,7 +23,7 @@
 #include <hal/gpio_types.h>
 #include <nvs_flash.h>
 #include <sys/_stdint.h>
-#include <tcpip_adapter.h>
+#include <esp_netif.h>
 #include <esp_log.h>
 #include <cmath>
 #include <cstring>
@@ -54,26 +54,26 @@ QueueHandle_t queueCommand;
 
 
 /* A simple class which may throw an exception from constructor */
-class Throwing
-{
-public:
-    Throwing(int arg)
-    : m_arg(arg)
-    {
-        cout << "In constructor, arg=" << arg << endl;
-        if (arg == 0) {
-            throw runtime_error("Exception in constructor");
-        }
-    }
-
-    ~Throwing()
-    {
-        cout << "In destructor, m_arg=" << m_arg << endl;
-    }
-
-protected:
-    int m_arg;
-};
+//class Throwing
+//{
+//public:
+//    Throwing(int arg)
+//    : m_arg(arg)
+//    {
+//        cout << "In constructor, arg=" << arg << endl;
+//        if (arg == 0) {
+//            throw runtime_error("Exception in constructor");
+//        }
+//    }
+//
+//    ~Throwing()
+//    {
+//        cout << "In destructor, m_arg=" << m_arg << endl;
+//    }
+//
+//protected:
+//    int m_arg;
+//};
 
 
 SemaphoreHandle_t i2c_mutex;
@@ -82,6 +82,12 @@ void RXtask(void * parameters);
 void initUART(void);
 //TaskHandle_t WifiSCANTaskt;
 //void WifiSCANTask(void * parameters);
+
+static char *auth_mode_type(wifi_auth_mode_t auth_mode)
+{
+  char *types[] = {"OPEN", "WEP", "WPA PSK", "WPA2 PSK", "WPA WPA2 PSK", "MAX"};
+  return types[auth_mode];
+}
 
 static void scan_done_handler(void)
 {
@@ -98,7 +104,7 @@ static void scan_done_handler(void)
 
     if (esp_wifi_scan_get_ap_records(&sta_number, (wifi_ap_record_t *)ap_list_buffer) == ESP_OK) {
         for (i = 0; i < sta_number; i++) {
-            ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5]);
+            ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X][%12s]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5], auth_mode_type(ap_list_buffer[i].authmode));
         }
     }
     free(ap_list_buffer);
@@ -138,11 +144,7 @@ void wifiInit() {
 	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-static char *auth_mode_type(wifi_auth_mode_t auth_mode)
-{
-  char *types[] = {"OPEN", "WEP", "WPA PSK", "WPA2 PSK", "WPA WPA2 PSK", "MAX"};
-  return types[auth_mode];
-}
+
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void)
@@ -236,51 +238,49 @@ extern "C" void app_main(void)
 				 	ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
 			 }
 			 else if (x.command[0] == 'G' && x.command[1] == 'N') {
-				 ooo->readHoursFromRTC(&hour);
-				 ooo->readMinutesFromRTC(&minute);
-				 ooo->readSecondsFromRTC(&second);
+				 ESP_ERROR_CHECK(ooo->readHoursFromRTC(&hour));
+				 ESP_ERROR_CHECK(ooo->readMinutesFromRTC(&minute));
+				 ESP_ERROR_CHECK(ooo->readSecondsFromRTC(&second));
 				 printf("Time: %.2d:%.2d:%.2d \n", hour,minute,second );
-				 ooo->readYearFromRTC(&year);
-				 ooo->readMonthFromRTC(&month);
-				 ooo->readDateFromRTC(&date);
+				 ESP_ERROR_CHECK(ooo->readYearFromRTC(&year));
+				 ESP_ERROR_CHECK(ooo->readMonthFromRTC(&month));
+				 ESP_ERROR_CHECK(ooo->readDateFromRTC(&date));
 				 printf("Date: %d-%.2d-%.2d \n", year, month, date);
-				 ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer);
+				 ESP_ERROR_CHECK(ooo->isTimerWakeUp(true,&bRTCWakeUpByTimer));
 				 cout << "Wake Up by Timer : " << bRTCWakeUpByTimer << endl;
 			 }
 			 else if (x.command[0] == 'G' && x.command[1] == 'C') {
+				 try {
 				 uint8_t timerValue = 0;
 				 uint8_t timerMode = 0;
 				 ESP_ERROR_CHECK(ooo->readTimerValueFromRTC(&timerValue));
 				 ESP_ERROR_CHECK(ooo->readTimerModeFromRTC(&timerMode));
+				 //Conversion from number to enum value...
 				 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(timerMode));
 				 cout << unsigned(timerValue) << " " << val << endl;
-
+				 } catch (const std::range_error &e) {
+					 cout << "Exception caught: " << e.what() << endl;
+				 }
 			 }
 		 }
-
-
-
-		 //ooo->printAllRegs(true);
-
-
 
 		 vTaskDelay( 10 / portTICK_PERIOD_MS );
 	 }
 
 
 
-    try {
-
-        /* This will succeed */
-        Throwing obj1(42);
-
-        /* This will throw an exception */
-        Throwing obj2(0);
-
-        cout << "This will not be printed" << endl;
-    } catch (const runtime_error &e) {
-        cout << "Exception caught: " << e.what() << endl;
-    }
+//    try {
+//
+//        /* This will succeed */
+//        Throwing obj1(42);
+//
+//        /* This will throw an exception */
+//        Throwing obj2(0);
+//
+//        cout << "This will not be printed" << endl;
+//    } catch (const runtime_error &e) {
+//        cout << "Exception caught: " << e.what() << endl;
+//    }
 
     cout << "app_main done" << endl;
 }
