@@ -201,14 +201,14 @@ extern "C" void app_main(void)
 
 	while(true) {
 
-		 if(ooo->sttime[0x01] > 0 )
-		 {
-			 counter++;
-			 if(counter > 1){
-				 ooo->writeControl2Reg(FD_CLKOUT_LOW);
-				 counter = 0;
-			 }
-		 }
+//		 if(ooo->sttime[0x01] > 0 )
+//		 {
+//			 counter++;
+//			 if(counter > 1){
+//				 ooo->writeControl2Reg(FD_CLKOUT_LOW);
+//				 counter = 0;
+//			 }
+//		 }
 
 		 qL = uxQueueMessagesWaiting(ooo->getCommandQueue());
 		 for(int i = 0; i< qL; i++) {
@@ -315,25 +315,22 @@ extern "C" void app_main(void)
 			 else if (x.command[0] == 'R' && x.command[1] == 'R'){
 				 	 	 	 ooo->resetRTC();
 			 }
+			 else if (x.command[0] == 'T' && x.command[1] == 'T'){
+//			 1.	Set the timer configuration → Reg(0x10) = 0x0A, Reg(0x11) = 0x12, Reg(0x01) = 0x00
+//			 2.	Launch the timer → Reg(0x11) = 0x16  (TE = 1)
+				 cout<<"Special test routine start : 10 sec timer TP_TI = 0"<< endl;
+				 ooo->writeTimerValueToRTC( 0x0A);
+				 ooo->writeTimerModeToRTC(0x12);
+				 ooo->writeControl1Reg(0x00);
+				 ooo->writeTimerModeToRTC(0x16);
+				 cout<<"Start checking the oscilloscope pls..."<< endl;
+			 }
+
+
 		 }
 
 		 vTaskDelay( 10 / portTICK_PERIOD_MS );
 	 }
-
-
-
-//    try {
-//
-//        /* This will succeed */
-//        Throwing obj1(42);
-//
-//        /* This will throw an exception */
-//        Throwing obj2(0);
-//
-//        cout << "This will not be printed" << endl;
-//    } catch (const runtime_error &e) {
-//        cout << "Exception caught: " << e.what() << endl;
-//    }
 
     cout << "app_main done" << endl;
 }
