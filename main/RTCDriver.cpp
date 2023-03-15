@@ -32,6 +32,8 @@ QueueHandle_t RTCDriver::getCommandQueue(void) {
 	return this->queueCommand;
 }
 
+
+
 esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	esp_err_t ret;
 	uint8_t reg =0;
@@ -56,14 +58,36 @@ esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	return ret;
 }
 
+esp_err_t RTCDriver::readControl1Reg(uint8_t * reg){
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL1 , (uint8_t *)(&(this->sttime.Control1)), 1);
+	xSemaphoreGive(*(this->smph));
+	//if(ret == ESP_OK) {
+		*reg = (this->sttime.Control1);
+	//}
+	return ret;
+}
+
+esp_err_t RTCDriver::writeControl1Reg(uint8_t reg){
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL1 , &reg , 1);
+	xSemaphoreGive(*(this->smph));
+	return ret;
+}
+esp_err_t RTCDriver::resetRTC(void) {
+	return writeControl1Reg(RESET_RTC);
+}
+
 esp_err_t RTCDriver::readControl2Reg(uint8_t * reg) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , reg , 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , (uint8_t *)(&(this->sttime.Control2)), 1);
 	xSemaphoreGive(*(this->smph));
-	if(ret == ESP_OK) {
-		reg = &(this->sttime.Control2);
-	}
+	//if(ret == ESP_OK) {
+		*reg = (this->sttime.Control2);
+	//}
 	return ret;
 }
 

@@ -40,6 +40,8 @@ using namespace std;
 #define REG_ADDR_TIMER_VALUE	0x10
 #define REG_ADDR_TIMER_MODE		0x11
 
+#define RESET_RTC				0x58
+
 //Filter default values
 #define FILTER_SECS				0x7F
 #define FILTER_MINS				0x7F
@@ -60,6 +62,7 @@ using namespace std;
 #define MI						0x20 /*Minute Interrupt Enable*/
 #define HMI						0x10 /*Half Minute Interrupt Enable*/
 #define TF						0x08 /*Timer Flag*/
+#define TF_CHECK(x) 			((x & TF) >> 3)
 #define FD 						0x07 /*CLKOUT Frequency*/
 
 #define FD_32kHz				0x00 /*32.768 kHz – Default value*/
@@ -158,6 +161,9 @@ public:
 
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
+	esp_err_t readControl1Reg(uint8_t *);
+	esp_err_t writeControl1Reg(uint8_t);
+	esp_err_t resetRTC(void);
 	esp_err_t readControl2Reg(uint8_t *);
 	esp_err_t writeControl2Reg(uint8_t);
 	esp_err_t writeTimeToRTC(void);

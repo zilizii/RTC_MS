@@ -181,9 +181,11 @@ extern "C" void app_main(void)
 	}
 	cout << "app_main starting" << endl;
 
-	ooo->writeTimerValueToRTC(5);
+	//removed for testing purpose
+	//ooo->writeTimerValueToRTC(5);
 	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
-	ooo->writeTimerModeToRTC(0b11111); // 0b11111
+	//ooo->writeTimerModeToRTC(0b11111); // 0b11111
+
 	xTaskCreate(RXtask, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
 
 	wifi_scan_config_t scan_config ;
@@ -257,10 +259,61 @@ extern "C" void app_main(void)
 				 ESP_ERROR_CHECK(ooo->readTimerModeFromRTC(&timerMode));
 				 //Conversion from number to enum value...
 				 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(timerMode));
-				 cout << unsigned(timerValue) << " " << val << endl;
+				 cout << unsigned(timerValue) << " " << val << " Timer Enable "<< TE_CHECK(timerMode)
+						 << " Timer Interrupt Enable " << TIE_CHECK(timerMode) << " Timer Interrupt Mode " << TI_TP_CHECK(timerMode) << endl;
 				 } catch (const std::range_error &e) {
 					 cout << "Exception caught: " << e.what() << endl;
 				 }
+			 }
+			 else if (x.command[0] == 'S' && x.command[1] == 'C' && x.command[2] == 'V') {
+
+				 if ( (strlen(x.command) - 3) == 0) {
+					cout<<"Timer Value Out of Range : No Value added" << endl;
+				 	break;
+				 }
+				 int value = 0;
+				 value = atoi(x.command + 3);
+				 if(value < 256) {
+					 ooo->writeTimerValueToRTC( (uint8_t)value);
+					 cout <<" Timer Value set to : " << value << endl;
+				 }else{
+					 cout<<"Timer value Out of Range [0-255] : " << value <<endl;
+				 }
+			 }
+			 else if (x.command[0] == 'S' && x.command[1] == 'C' && x.command[2] == 'M') {
+				 if(    (strlen(x.command) - 4) > 2 ){
+					 cout<<"Timer Mode Out of Range : " << x.command + 3 <<endl;
+					 break;
+				 }
+				 else if ( (strlen(x.command) - 4) == 0) {
+					 cout<<"Timer Mode Out of Range : No Value added" << endl;
+					 break;
+				 }
+				 uint8_t value = (int)strtol(x.command + 3, NULL, 16);
+				 uint8_t reg;
+				 if (value > 0b11111) {
+					 cout<<"Timer Mode Out of Range [0-1F] : " << x.command + 3 <<endl;
+					 break;
+				 }
+				 ooo->writeTimerModeToRTC(value);
+				 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(value));
+				 cout << "Timer Freq set : " << val << " Timer Enable "<< TE_CHECK(value)
+				 	  << " Timer Interrupt Enable " <<TIE_CHECK(value) << " Timer Interrupt Mode " << TI_TP_CHECK(value) << endl;
+				 // trial;
+				 //ooo->writeControl2Reg(0b111);
+
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'A'){
+				 ooo->printAllRegs(true);
+			 }
+			 else if (x.command[0] == 'C' && x.command[1] == 'C'){
+				 ooo->writeControl2Reg(0b1111);
+			 }
+			 else if (x.command[0] == 'C' && x.command[1] == 'V'){
+			 				 ooo->writeControl2Reg(0b111);
+			 			 }
+			 else if (x.command[0] == 'R' && x.command[1] == 'R'){
+				 	 	 	 ooo->resetRTC();
 			 }
 		 }
 
