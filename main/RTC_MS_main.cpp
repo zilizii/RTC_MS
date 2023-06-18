@@ -32,7 +32,7 @@
 #include "sdkconfig.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
-
+#include <hal/gpio_types.h>
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 
@@ -45,6 +45,11 @@ using std::endl;
 using std::runtime_error;
 
 #define MAXIMUM_AP 20
+
+#define HIGH 1
+#define LOW 0
+#define OUTPUT GPIO_MODE_OUTPUT
+#define INPUT GPIO_MODE_INPUT
 
 static const char *TAG = "RT_MS";
 static const int RX_BUF_SIZE = 256;
@@ -104,7 +109,8 @@ static void scan_done_handler(void)
 
     if (esp_wifi_scan_get_ap_records(&sta_number, (wifi_ap_record_t *)ap_list_buffer) == ESP_OK) {
         for (i = 0; i < sta_number; i++) {
-            ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X][%12s]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5], auth_mode_type(ap_list_buffer[i].authmode));
+           // ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X][%12s]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5], auth_mode_type(ap_list_buffer[i].authmode));
+        	cout << TAG << ap_list_buffer[i].ssid <<"[rssi="<< ap_list_buffer[i].rssi<<"][MAC="<< std::hex << ap_list_buffer[i].bssid[0]<<":"<<std::hex<<ap_list_buffer[i].bssid[1]<<":"<<std::hex<<ap_list_buffer[i].bssid[2]<<":"<<std::hex<<ap_list_buffer[i].bssid[3]<<":"<<std::hex<<ap_list_buffer[i].bssid[4]<<":"<<std::hex<<ap_list_buffer[i].bssid[5]<<":"<<"]["<<auth_mode_type(ap_list_buffer[i].authmode)<<endl;
         }
     }
     free(ap_list_buffer);
@@ -144,15 +150,24 @@ void wifiInit() {
 	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
+void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
+
+    gpio_num_t gpioNumNative = (gpio_num_t)(gpioNum);
+    gpio_mode_t gpioModeNative = (gpio_mode_t)(gpioMode);
+    gpio_pad_select_gpio(gpioNumNative);
+    gpio_set_direction(gpioNumNative, gpioModeNative);
+    gpio_set_level(gpioNumNative, gpioVal);
+}
 
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void)
 {
+	gpioSetup(17, OUTPUT, HIGH);
 	esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month =0,date =0,hour =0,minute=0,second=0;
-	uint8_t counter = 0;
+	//uint8_t counter = 0;
 	int qL = 0;
 	bool bRTCWakeUpByTimer;
 
@@ -253,14 +268,14 @@ extern "C" void app_main(void)
 			 }
 			 else if (x.command[0] == 'G' && x.command[1] == 'C') {
 				 try {
-				 uint8_t timerValue = 0;
-				 uint8_t timerMode = 0;
-				 ESP_ERROR_CHECK(ooo->readTimerValueFromRTC(&timerValue));
-				 ESP_ERROR_CHECK(ooo->readTimerModeFromRTC(&timerMode));
-				 //Conversion from number to enum value...
-				 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(timerMode));
-				 cout << unsigned(timerValue) << " " << val << " Timer Enable "<< TE_CHECK(timerMode)
-						 << " Timer Interrupt Enable " << TIE_CHECK(timerMode) << " Timer Interrupt Mode " << TI_TP_CHECK(timerMode) << endl;
+					 uint8_t timerValue = 0;
+					 uint8_t timerMode = 0;
+					 ESP_ERROR_CHECK(ooo->readTimerValueFromRTC(&timerValue));
+					 ESP_ERROR_CHECK(ooo->readTimerModeFromRTC(&timerMode));
+					 //Conversion from number to enum value...
+					 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(timerMode));
+					 cout << unsigned(timerValue) << " " << val << " Timer Enable "<< TE_CHECK(timerMode)
+							 << " Timer Interrupt Enable " << TIE_CHECK(timerMode) << " Timer Interrupt Mode " << TI_TP_CHECK(timerMode) << endl;
 				 } catch (const std::range_error &e) {
 					 cout << "Exception caught: " << e.what() << endl;
 				 }
@@ -274,7 +289,7 @@ extern "C" void app_main(void)
 				 int value = 0;
 				 value = atoi(x.command + 3);
 				 if(value < 256) {
-					 ooo->writeTimerValueToRTC( (uint8_t)value);
+					 ESP_ERROR_CHECK(ooo->writeTimerValueToRTC( (uint8_t)value));
 					 cout <<" Timer Value set to : " << value << endl;
 				 }else{
 					 cout<<"Timer value Out of Range [0-255] : " << value <<endl;
@@ -290,12 +305,12 @@ extern "C" void app_main(void)
 					 break;
 				 }
 				 uint8_t value = (int)strtol(x.command + 3, NULL, 16);
-				 uint8_t reg;
+				// uint8_t reg;
 				 if (value > 0b11111) {
 					 cout<<"Timer Mode Out of Range [0-1F] : " << x.command + 3 <<endl;
 					 break;
 				 }
-				 ooo->writeTimerModeToRTC(value);
+				 ESP_ERROR_CHECK(ooo->writeTimerModeToRTC(value));
 				 eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(value));
 				 cout << "Timer Freq set : " << val << " Timer Enable "<< TE_CHECK(value)
 				 	  << " Timer Interrupt Enable " <<TIE_CHECK(value) << " Timer Interrupt Mode " << TI_TP_CHECK(value) << endl;
@@ -304,13 +319,13 @@ extern "C" void app_main(void)
 
 			 }
 			 else if (x.command[0] == 'G' && x.command[1] == 'A'){
-				 ooo->printAllRegs(true);
+				 ESP_ERROR_CHECK(ooo->printAllRegs(true));
 			 }
 			 else if (x.command[0] == 'C' && x.command[1] == 'C'){
-				 ooo->writeControl2Reg(0b1111);
+				 ESP_ERROR_CHECK(ooo->writeControl2Reg(0b1111));
 			 }
 			 else if (x.command[0] == 'C' && x.command[1] == 'V'){
-			 				 ooo->writeControl2Reg(0b111);
+				 ESP_ERROR_CHECK(ooo->writeControl2Reg(0b111));
 			 			 }
 			 else if (x.command[0] == 'R' && x.command[1] == 'R'){
 				 	 	 	 ooo->resetRTC();
@@ -319,11 +334,16 @@ extern "C" void app_main(void)
 //			 1.	Set the timer configuration → Reg(0x10) = 0x0A, Reg(0x11) = 0x12, Reg(0x01) = 0x00
 //			 2.	Launch the timer → Reg(0x11) = 0x16  (TE = 1)
 				 cout<<"Special test routine start : 10 sec timer TP_TI = 0"<< endl;
-				 ooo->writeTimerValueToRTC( 0x0A);
+				 ooo->writeTimerValueToRTC(0x0A);
 				 ooo->writeTimerModeToRTC(0x12);
 				 ooo->writeControl1Reg(0x00);
 				 ooo->writeTimerModeToRTC(0x16);
 				 cout<<"Start checking the oscilloscope pls..."<< endl;
+			 }
+			 else if (x.command[0] == 'Q' && x.command[1] == 'T'){
+				 gpio_set_level((gpio_num_t)17, LOW);
+				 esp_restart();
+
 			 }
 
 
