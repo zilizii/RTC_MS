@@ -6,6 +6,7 @@
    software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
    CONDITIONS OF ANY KIND, either express or implied.
 */
+
 #include <driver/gpio.h>
 #include <esp_attr.h>
 #include <esp_err.h>
@@ -14,6 +15,7 @@
 #include <esp_system.h>
 #include <esp_wifi.h>
 #include <esp_wifi_types.h>
+#include <esp_now.h>
 #include <esp32/rom/ets_sys.h>
 #include <esp32/rom/gpio.h>
 #include "driver/uart.h"
@@ -27,7 +29,7 @@
 #include <esp_log.h>
 #include <cmath>
 #include <cstring>
-#include "RTCDriver.h"
+#include <bitset>
 #include <iostream>
 #include "sdkconfig.h"
 #include "lwip/err.h"
@@ -35,6 +37,12 @@
 #include <hal/gpio_types.h>
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
+#include "HW_setup.h"
+#include "BatteryMGM.h"
+#include "RTCDriver.h"
+#include "esp_now_stuff.h"
+
+
 
 //#include "esp_event_loop.h"
 #include "esp_event.h"
@@ -46,47 +54,19 @@ using std::runtime_error;
 
 #define MAXIMUM_AP 20
 
-#define HIGH 1
-#define LOW 0
-#define OUTPUT GPIO_MODE_OUTPUT
-#define INPUT GPIO_MODE_INPUT
+
 
 static const char *TAG = "RT_MS";
 static const int RX_BUF_SIZE = 256;
 QueueHandle_t queueCommand;
 
-
-
-
-/* A simple class which may throw an exception from constructor */
-//class Throwing
-//{
-//public:
-//    Throwing(int arg)
-//    : m_arg(arg)
-//    {
-//        cout << "In constructor, arg=" << arg << endl;
-//        if (arg == 0) {
-//            throw runtime_error("Exception in constructor");
-//        }
-//    }
-//
-//    ~Throwing()
-//    {
-//        cout << "In destructor, m_arg=" << m_arg << endl;
-//    }
-//
-//protected:
-//    int m_arg;
-//};
-
-
 SemaphoreHandle_t i2c_mutex;
 //RTCDriver ooo;
 void RXtask(void * parameters);
 void initUART(void);
-//TaskHandle_t WifiSCANTaskt;
-//void WifiSCANTask(void * parameters);
+
+
+
 
 static char *auth_mode_type(wifi_auth_mode_t auth_mode)
 {
@@ -136,7 +116,6 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
  * Support to testing Scan functionality
  * old tcpip removed
  */
-
 void wifiInit() {
 	ESP_ERROR_CHECK(nvs_flash_init());
 	ESP_ERROR_CHECK(esp_netif_init());
@@ -150,20 +129,62 @@ void wifiInit() {
 	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
+
+
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
 
     gpio_num_t gpioNumNative = (gpio_num_t)(gpioNum);
     gpio_mode_t gpioModeNative = (gpio_mode_t)(gpioMode);
     gpio_pad_select_gpio(gpioNumNative);
     gpio_set_direction(gpioNumNative, gpioModeNative);
-    gpio_set_level(gpioNumNative, gpioVal);
+
+    if(gpioMode == OUTPUT){
+    	gpio_set_level(gpioNumNative, gpioVal);
+    }
 }
+
+
+void checkHWInputs() {
+	//uint8_t pins= 0x0;
+	std::bitset<2> pins;
+	pins[0] = gpio_get_level((gpio_num_t)WAKE_UP_GPIO);
+	pins[1] =  gpio_get_level((gpio_num_t)REED_SWITCH);
+	cout <<"pins: " << pins << endl;
+}
+
+void setGPIOasInput(int gpioNum) {
+	gpio_config_t gpioModeNative;
+	gpioModeNative.intr_type = GPIO_INTR_DISABLE;
+	gpioModeNative.pin_bit_mask = (1ULL<<gpioNum);
+	gpioModeNative.mode = GPIO_MODE_INPUT;
+	// TODO : With the pull down the WAKE UP button okay, !INT shall be checked parallel
+	// TODO : better config shall eb implemented
+	gpioModeNative.pull_up_en = GPIO_PULLUP_DISABLE;
+	gpioModeNative.pull_down_en = GPIO_PULLDOWN_ENABLE;
+	gpio_config(&gpioModeNative);
+}
+
+void setHWInputs() {
+	gpioSetup(MCU_ON, OUTPUT, HIGH);
+	gpioSetup(REED_SWITCH, INPUT, LOW);
+	//HW sees as always high
+	//gpioSetup(WAKE_UP_GPIO, INPUT, LOW);
+	setGPIOasInput(WAKE_UP_GPIO);
+	gpioSetup(ON_BOARD_LED, OUTPUT, LOW);
+
+}
+
 
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void)
 {
-	gpioSetup(17, OUTPUT, HIGH);
+	//gpioSetup(MCU_ON, OUTPUT, HIGH);
+	setHWInputs();
+	checkHWInputs();
+	BatteryMGM batt;
+	cout << "Battery Read "<< batt.readADC() << endl;
+	cout << "Battery Read "<< batt.getBatteryVoltage() << " [mV] " << endl;
 	esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month =0,date =0,hour =0,minute=0,second=0;
@@ -216,14 +237,7 @@ extern "C" void app_main(void)
 
 	while(true) {
 
-//		 if(ooo->sttime[0x01] > 0 )
-//		 {
-//			 counter++;
-//			 if(counter > 1){
-//				 ooo->writeControl2Reg(FD_CLKOUT_LOW);
-//				 counter = 0;
-//			 }
-//		 }
+
 
 		 qL = uxQueueMessagesWaiting(ooo->getCommandQueue());
 		 for(int i = 0; i< qL; i++) {
@@ -345,7 +359,14 @@ extern "C" void app_main(void)
 				 esp_restart();
 
 			 }
+			 else if (x.command[0] == 'L' && x.command[1] == 'S' && x.command[2] == 'I'){
+							 gpio_set_level((gpio_num_t)ON_BOARD_LED, HIGH);
 
+			 }
+			 else if (x.command[0] == 'L' && x.command[1] == 'S' && x.command[2] == 'O'){
+			 							 gpio_set_level((gpio_num_t)ON_BOARD_LED, LOW);
+
+			 }
 
 		 }
 

@@ -42,5 +42,59 @@ menu "RTC_MS"
             help
                 I2C Speed of Master device.
     endmenu
+    
+    menu "HW Dependent"
+    	
+    	
+    	choice SELECT_HW_CONFIG_MODE
+    	prompt "Select the HW Configuration Mode"
+    	default SELECT_HW_0_1
+			config SELECT_MANUAL_CONFIG
+	    		bool "Set GPIOs Manually"
+			config SELECT_HW_0_1
+	    		bool "HW ver 0.1"
+	    	config SELECT_HW_0_2
+	    		bool "HW ver 0.2"
+		endchoice
+    	
+    		
+    	config MCU_ON_GPIO
+    		depends on SELECT_MANUAL_CONFIG
+    		int "Holding the MCU on state"
+    		default 17
+    		help
+    			This pin enabled to have a running MCU,
+    			if this pin going to LOW the expected behavior 
+    			the going to switch off
+    			
+		config WAKE_UP_GPIO
+			depends on SELECT_MANUAL_CONFIG
+			int "Wake up button GPIO pin"
+    		default 19
+    		help
+				This pin used to monitor the Wake up button state
+				
+		config REED_SWITCH
+			depends on SELECT_MANUAL_CONFIG
+			int "Reed switch GPIO pin"
+    		default 16
+    		help
+				This pin used to monitor the REED Relay state
+		
+		config ON_BOARD_LED
+			depends on SELECT_MANUAL_CONFIG
+			int "On Board LED GPIO pin"
+    		default 18
+    		help
+				This pin used for driving LED		
+				  
+		config BATTERY_ADC_PIN
+			depends on SELECT_MANUAL_CONFIG
+			int "Battery Monitor GPIO pin"
+    		default 27
+    		help
+				This pin used for Measuring the Battery Voltage
+						  			  
+    endmenu
 
 endmenu
