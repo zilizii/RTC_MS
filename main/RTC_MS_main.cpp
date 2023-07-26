@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "HW_setup.h"
+#include "ConfigurationHandler.h"
 #include "BatteryMGM.h"
 #include "RTCDriver.h"
 #include "esp_now_stuff.h"
@@ -175,14 +176,13 @@ void setHWInputs() {
 }
 
 
-
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void)
 {
 	//gpioSetup(MCU_ON, OUTPUT, HIGH);
 	setHWInputs();
 	checkHWInputs();
-	BatteryMGM batt;
+	BatteryMGM batt("BatteryManager");
 	cout << "Battery Read "<< batt.readADC() << endl;
 	cout << "Battery Read "<< batt.getBatteryVoltage() << " [mV] " << endl;
 	esp_err_t ret;
@@ -209,7 +209,7 @@ extern "C" void app_main(void)
     ret = i2c_master_init();
 	if(ret != ESP_OK)
 		 cout<< "i2c driver install failed" << endl;
-	RTCDriver * ooo = new RTCDriver(&i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
+	RTCDriver * ooo = new RTCDriver("RTC",&i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
 	queueCommand = ooo->getCommandQueue();
 	ret = ooo->readAllRegsFromRTC();
 	if(ret != ESP_OK){

@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "HW_setup.h"
+#include "SavingInterfaceClass.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -26,17 +27,30 @@
 
 enum BatteryType { Lithium, Lifepo4, AAx3};
 
+const char* BatteryTypeToString(BatteryType b);
+std::ostream& operator<<(std::ostream& os, BatteryType e);
+static std::map<std::string, BatteryType> BatteryTypeEnumMap = {{"Lithium", BatteryType::Lithium},{"Lifepo4", BatteryType::Lifepo4},{"AAx3",BatteryType::AAx3}};
 
-class BatteryMGM {
+
+class BatteryMGM : public SavingInterfaceClass {
 private:
-	int upperLimit;
-	int lowerLimit;
+	uint16_t upperLimit;
+	uint16_t lowerLimit;
     BatteryType batt;
 public:
-	BatteryMGM();
+	BatteryMGM(std::string name);
 	virtual ~BatteryMGM();
 	int readADC();
 	int getBatteryVoltage();
+	cJSON* Save();
+	void Load(cJSON*);
+
+
+	//removed due to concept change,
+	/*friend std::ofstream & operator << (std::ofstream & , BatteryMGM );
+	friend std::ifstream & operator >> (std::ifstream & , BatteryMGM & );
+	void WriteContent( std::ofstream& );*/
+
 };
 
 #endif /* MAIN_BATTERYMGM_H_ */

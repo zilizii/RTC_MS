@@ -21,7 +21,7 @@ std::ostream& operator<<(std::ostream& os, eTimeClockFreq e)
 	return os;
 }
 
-RTCDriver::RTCDriver(SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) {
+RTCDriver::RTCDriver(std::string name,SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) : SavingInterfaceClass(name) {
 	this->smph = Smpf;
 	this->_fp_readi2c = preadI2CFnc;
 	this->_fp_writei2c = pwriteI2CFnc;
@@ -395,6 +395,18 @@ void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 
 int8_t RTCDriver::getTimeZone(void) {
 	return this->_timeZone;
+}
+
+void RTCDriver::Load(cJSON * p_json) {
+	_timeZone = cJSON_GetObjectItem(p_json,"TimeZone")->valueint;
+}
+
+cJSON* RTCDriver::Save() {
+	cJSON * RTCObject;
+	RTCObject = cJSON_CreateObject();
+	cJSON_AddNumberToObject(RTCObject, "TimeZone", _timeZone);
+	// TODO : Implement
+	return RTCObject;
 }
 
 
