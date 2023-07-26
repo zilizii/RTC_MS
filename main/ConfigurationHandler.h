@@ -7,6 +7,7 @@
 
 #ifndef MAIN_CONFIGURATIONHANDLER_H_
 #define MAIN_CONFIGURATIONHANDLER_H_
+#include <algorithm>
 #include <iostream>
 #include <list>
 #include <cJSON.h>
