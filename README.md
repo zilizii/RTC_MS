@@ -1,41 +1,33 @@
 # RV-8263-C7 RTC Helper Class Development Project
 
 This example demonstrates usage of automotive grade external I2C RTC in ESP-IDF environment.
+To show a usecase in a real world application a "MailBox Notifier" demo build up. The Application together with the PCB board is able to track a mailbox OPEN or CLOSED state and send out to a receiver uController. The communication via ESP-NOW protocol.
+Some of the parameters has a SAVE/LOAD capability to SPIFF file system.
 
 
 ## How to use example
 
 ### Hardware Required
 
-This example should be able to run on any commonly available ESP32 development board.
+This example should be able to run on MailBox Notifier - ESP32 based custom PCB board | PINS are configurable.
 RTC RV-8263-C7 connected to SDA - GPIO 21 (configurable) and SCL to GPIO 22 (configurable)
-
+ESP32 set up to 16M with 4M application and 1M SPIFFS --> reconfigurable from 'partitions.csv' file and the 'sdkconfig'
 
 ### Configure the project
 
 ```
 idf.py menuconfig
 ```
-Please use the 'I2C Config' menu to set SCL, SDA GPIO pins, I2C port and the frequency
-Please use the 'RTC_MS' menu to setup basic parameters of the RTC timer  
+Please use the 'RTC_MS/I2C Config' menu to set SCL, SDA GPIO pins, I2C port and the frequency
+Please use the 'RTC_MS/RV-8263-C7 RTC Driver' menu to setup basic parameters of the RTC timer
+Please use the 'RTC_MS/HW Dependent' menu to setup the HW versions|setup your PIN layout
 
 ### Tuning of the application
 
 ```
 main\RTC_MS_main.cpp 
 ```
-File the time and the wake up factors can be changed 
 
-```
-ooo->writeTimerValueToRTC(5); // Counter set to 5```
-```
-Output set to minutes and the Wake up timer set it up
-The outcome every 5 minutes wake up...
-
-```
-// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled 
-ooo->writeTimerModeToRTC(0b11111); // 0b11111
-```
 Please read the RV-8263-C7 Application Notes for more details.
 
 ### Build and Flash
@@ -97,9 +89,35 @@ I (270591) RT_MS: [UPC1819346][rssi=-74][MAC=34:2C:C4:AB:FF:F0]
 I (270601) RT_MS: [UPCD198CFD][rssi=-92][MAC=90:5C:44:9B:51:DE]
 I (270601) RT_MS: sta scan done
 
+'QT' quit from application and save configuration to SPIFF
+example command : QT
+example output : ets Jun  8 2016 00:2▒▒ets Jun  8 2016 00:22:57
+
+'GJ' Save Configuration to SPIFF
+example command : GJ
+example output :
+
+'FM' Get Free Heap size
+example command : GM
+example output : 216172 bytes
+
+'LSI' Set LED Light to ON
+example command : LSI
+example output :
+
+'LSO' Set LED Light to OFF
+example command : LSO
+example output :
+
 
 ## Example Output  
 
 ```
+pins: 10
+ SPIFF Init done
+ADC Channel 27
+Battery Read 2754
+Battery Read 2754 [mV]
 app_main starting
-Wake Up by Timer : 1
+Wake Up by Timer : 0
+

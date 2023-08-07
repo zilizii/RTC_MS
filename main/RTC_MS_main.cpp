@@ -18,6 +18,7 @@
 #include <esp_now.h>
 #include <esp32/rom/ets_sys.h>
 #include <esp32/rom/gpio.h>
+#include "esp_spiffs.h"
 #include "driver/uart.h"
 #include <freertos/portmacro.h>
 #include <freertos/task.h>
@@ -29,6 +30,7 @@
 #include <esp_log.h>
 #include <cmath>
 #include <cstring>
+#include <string.h>
 #include <bitset>
 #include <iostream>
 #include "sdkconfig.h"
@@ -182,10 +184,40 @@ extern "C" void app_main(void)
 	//gpioSetup(MCU_ON, OUTPUT, HIGH);
 	setHWInputs();
 	checkHWInputs();
+
+	esp_vfs_spiffs_conf_t config = {
+	      .base_path = "/spiffs",
+	      .partition_label = NULL,
+	      .max_files = 5,
+	      .format_if_mount_failed = true,
+	  };
+	esp_err_t ret = esp_vfs_spiffs_register(&config);
+
+	switch(ret){
+	case ESP_OK:
+		cout<<" SPIFF Init done" << std::endl;
+		break;
+	case ESP_ERR_NO_MEM:
+		cout<<" if objects could not be allocated" << std::endl;
+		break;
+	case ESP_ERR_INVALID_STATE:
+		cout << "already mounted or partition is encrypted" << std::endl;
+		break;
+	case ESP_ERR_NOT_FOUND:
+		 cout << "partition for SPIFFS was not found" << std::endl;
+		 break;
+	case ESP_FAIL:
+		cout << "mount or format fails" << std::endl;
+		break;
+	}
+
+	ConfigurationHandler configHandler(CONFIG_PATH);
 	BatteryMGM batt("BatteryManager");
+	SavingInterfaceClass * battI = &batt;
+	configHandler.registerClass(battI);
 	cout << "Battery Read "<< batt.readADC() << endl;
 	cout << "Battery Read "<< batt.getBatteryVoltage() << " [mV] " << endl;
-	esp_err_t ret;
+	//esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month =0,date =0,hour =0,minute=0,second=0;
 	//uint8_t counter = 0;
@@ -210,6 +242,11 @@ extern "C" void app_main(void)
 	if(ret != ESP_OK)
 		 cout<< "i2c driver install failed" << endl;
 	RTCDriver * ooo = new RTCDriver("RTC",&i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
+	SavingInterfaceClass * rtcI = ooo;
+	configHandler.registerClass(rtcI);
+
+	configHandler.LoadAllConfiguration();
+
 	queueCommand = ooo->getCommandQueue();
 	ret = ooo->readAllRegsFromRTC();
 	if(ret != ESP_OK){
@@ -355,17 +392,25 @@ extern "C" void app_main(void)
 				 cout<<"Start checking the oscilloscope pls..."<< endl;
 			 }
 			 else if (x.command[0] == 'Q' && x.command[1] == 'T'){
+				 configHandler.SaveAllConfiguration();
+				 esp_vfs_spiffs_unregister(NULL);
 				 gpio_set_level((gpio_num_t)17, LOW);
 				 esp_restart();
 
 			 }
 			 else if (x.command[0] == 'L' && x.command[1] == 'S' && x.command[2] == 'I'){
-							 gpio_set_level((gpio_num_t)ON_BOARD_LED, HIGH);
+				 gpio_set_level((gpio_num_t)ON_BOARD_LED, HIGH);
 
 			 }
 			 else if (x.command[0] == 'L' && x.command[1] == 'S' && x.command[2] == 'O'){
-			 							 gpio_set_level((gpio_num_t)ON_BOARD_LED, LOW);
+			 	 gpio_set_level((gpio_num_t)ON_BOARD_LED, LOW);
 
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'J') {
+				 configHandler.SaveAllConfiguration();
+			 }
+			 else if (x.command[0] == 'F' && x.command[1] == 'M') {
+				 cout << esp_get_free_heap_size() << " bytes" << endl;
 			 }
 
 		 }
@@ -374,6 +419,7 @@ extern "C" void app_main(void)
 	 }
 
     cout << "app_main done" << endl;
+    esp_vfs_spiffs_unregister(NULL);
 }
 
 void RXtask(void * parameters) {

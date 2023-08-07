@@ -7,12 +7,12 @@
 
 #include "ConfigurationHandler.h"
 
-ConfigurationHandler::ConfigurationHandler() {
-	// TODO Auto-generated constructor stub
-}
+
 
 ConfigurationHandler::~ConfigurationHandler() {
 	// TODO Auto-generated destructor stub
+	_ll.clear();
+	_path.empty();
 }
 
 
@@ -50,6 +50,9 @@ void ConfigurationHandler::LoadAllConfiguration() {
 }
 
 void ConfigurationHandler::SaveAllConfiguration() {
+	if(_ll.empty() == true) {
+		return;
+	}
 	cJSON * root;
 	root = cJSON_CreateObject();
 	std::for_each(_ll.begin(), _ll.end(),[&](SavingInterfaceClass *n) {
@@ -57,7 +60,10 @@ void ConfigurationHandler::SaveAllConfiguration() {
 		jsonObj = n->Save();
 		cJSON_AddItemToObject(root, n->GetClassFriendlyName().c_str(), jsonObj);
 	});
-	std::cout << cJSON_Print(root) << std::endl;
+	// File handling
+	std::ofstream out;
+	out.open(_path, std::ios::out);
+	out << cJSON_Print(root);
+	out.close();
 	cJSON_Delete(root);
-	// TODO: file handling to be here...
 }

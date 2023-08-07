@@ -18,7 +18,7 @@ private:
 	std::string _path;
 	std::list<SavingInterfaceClass *> _ll;
 public:
-	ConfigurationHandler();
+	ConfigurationHandler(std::string path) : _path(path) {};
 	virtual ~ConfigurationHandler();
 	void registerClass(SavingInterfaceClass *);
 	void LoadAllConfiguration();

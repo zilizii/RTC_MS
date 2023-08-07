@@ -36,6 +36,7 @@
  */
 
 static const adc2_channel_t channel = ADC2_CHANNEL_7;
+#define CONFIG_PATH "/spiffs/config.txt"
 
 
 #if defined(CONFIG_SELECT_MANUAL_CONFIG)
