@@ -153,10 +153,9 @@ private:
     int8_t _timeZone = TIME_ZONE;
 	QueueHandle_t queueCommand;
 	unsigned int topicSize = CONFIG_TOPIC_SIZE;
-public:
-	// TODO sttime should be private
 	_ttime sttime;
-
+public:
+	//SavingInterfaceClass interface functions
 	cJSON* Save();
 	void Load(cJSON*);
 

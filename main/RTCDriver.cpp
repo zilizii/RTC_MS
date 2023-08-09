@@ -363,7 +363,6 @@ esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
 }
 
 RTCDriver::~RTCDriver() {
-	// TODO Auto-generated destructor stub
 	vQueueDelete(queueCommand);
 }
 
@@ -405,7 +404,6 @@ cJSON* RTCDriver::Save() {
 	cJSON * RTCObject;
 	RTCObject = cJSON_CreateObject();
 	cJSON_AddNumberToObject(RTCObject, "TimeZone", _timeZone);
-	// TODO : Implement
 	return RTCObject;
 }
 

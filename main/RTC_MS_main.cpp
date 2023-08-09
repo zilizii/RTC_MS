@@ -71,10 +71,10 @@ void initUART(void);
 
 
 
-static char *auth_mode_type(wifi_auth_mode_t auth_mode)
+static std::string auth_mode_type(wifi_auth_mode_t auth_mode)
 {
-  char *types[] = {"OPEN", "WEP", "WPA PSK", "WPA2 PSK", "WPA WPA2 PSK", "MAX"};
-  return types[auth_mode];
+	std::string types[] = {"OPEN", "WEP", "WPA PSK", "WPA2 PSK", "WPA WPA2 PSK", "MAX"};
+	return types[auth_mode];
 }
 
 static void scan_done_handler(void)
@@ -161,7 +161,7 @@ void setGPIOasInput(int gpioNum) {
 	gpioModeNative.pin_bit_mask = (1ULL<<gpioNum);
 	gpioModeNative.mode = GPIO_MODE_INPUT;
 	// TODO : With the pull down the WAKE UP button okay, !INT shall be checked parallel
-	// TODO : better config shall eb implemented
+	// TODO : better config shall be implemented according to HW variants
 	gpioModeNative.pull_up_en = GPIO_PULLUP_DISABLE;
 	gpioModeNative.pull_down_en = GPIO_PULLDOWN_ENABLE;
 	gpio_config(&gpioModeNative);

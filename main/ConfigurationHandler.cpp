@@ -10,7 +10,6 @@
 
 
 ConfigurationHandler::~ConfigurationHandler() {
-	// TODO Auto-generated destructor stub
 	_ll.clear();
 	_path.empty();
 }

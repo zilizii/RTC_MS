@@ -7,13 +7,8 @@
 
 #include "SavingInterfaceClass.h"
 
-/*
-SavingInterfaceClass::SavingInterfaceClass() {
-	// TODO Auto-generated constructor stub
 
-}*/
 
 SavingInterfaceClass::~SavingInterfaceClass() {
-	// TODO Auto-generated destructor stub
 }
 

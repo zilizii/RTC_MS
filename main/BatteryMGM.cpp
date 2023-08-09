@@ -37,7 +37,7 @@ std::ostream& operator<<(std::ostream& os, BatteryType e)
 
 
 BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
-	// TODO Auto-generated constructor stub
+
 	gpio_num_t adc_gpio_num;
 	esp_err_t r;
 	r = adc2_pad_get_io_num( channel, &adc_gpio_num );
@@ -53,7 +53,6 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 }
 
 BatteryMGM::~BatteryMGM() {
-	// TODO Auto-generated destructor stub
 }
 
 int BatteryMGM::readADC(void) {
@@ -70,29 +69,6 @@ int BatteryMGM::getBatteryVoltage() {
 	return (this->upperLimit - this->lowerLimit) / 4095 * this->readADC();
 }
 
-/*std::map<std::string, void> BatteryMGM::Save(){
-	std::map<std::string, void> ret;
-	return ret;
-}*/
-
-/*void BatteryMGM::Load(std::map<std::string, void> valueMapping) {
-	this->lowerLimit = static_cast<uint8_t>(valueMapping.find("lowerLimit")->second);
-	this->upperLimit = static_cast<uint8_t>(valueMapping.find("upperLimit")->second);
-}*/
-
-/*ofstream& operator << (ofstream& ofs, BatteryMGM batt) {
-	ofs << "\tconfig\t{" << std::endl;
-	ofs << "\t\t\"upperLimit\": "<<batt.upperLimit<<","<<std::endl;
-	ofs << "\t\t\"lowerLimit\": "<<batt.lowerLimit<<","<<std::endl;
-	ofs << "\t\t\"BatteryType\": "<<batt.batt<<std::endl;
-	ofs << "\t}"<<std::endl;
-	return ofs;
-}
-
-void BatteryMGM::WriteContent( std::ofstream& ofs) {
-	ofs << "Lofasz jon ide" << std::endl;
-};
-*/
 
 void BatteryMGM::Load(cJSON * p_json) {
 	upperLimit = cJSON_GetObjectItem(p_json,"upperLimit")->valueint;
