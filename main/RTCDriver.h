@@ -10,12 +10,14 @@ using namespace std;
 #define MAIN_RTCDRIVER_H_
 #include <cstring>
 #include <iostream>
+#include <map>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_err.h"
 #include "i2c_cmd.h"
+#include "SavingInterfaceClass.h"
 
 // i2c Address
 #define ADDRESS_RTC   			0x51
@@ -39,6 +41,8 @@ using namespace std;
 #define REG_ADDR_TIMER_VALUE	0x10
 #define REG_ADDR_TIMER_MODE		0x11
 
+#define RESET_RTC				0x58
+
 //Filter default values
 #define FILTER_SECS				0x7F
 #define FILTER_MINS				0x7F
@@ -59,6 +63,7 @@ using namespace std;
 #define MI						0x20 /*Minute Interrupt Enable*/
 #define HMI						0x10 /*Half Minute Interrupt Enable*/
 #define TF						0x08 /*Timer Flag*/
+#define TF_CHECK(x) 			((x & TF) >> 3)
 #define FD 						0x07 /*CLKOUT Frequency*/
 
 #define FD_32kHz				0x00 /*32.768 kHz – Default value*/
@@ -85,6 +90,12 @@ using namespace std;
 #define TD_1_60Hz				0x03 /* 1/60  Hz - Default value*/
 
 #define HOURS_SECS				3600
+
+enum eTimeClockFreq { _4kHz = TD_4kHz, _64Hz = TD_64Hz,  sec = TD_1Hz,  Min =  TD_1_60Hz};
+
+std::ostream& operator<<(std::ostream& os, eTimeClockFreq e);
+
+
 
 /*
  * Stucture to store the RTC values in memory, Coded with BCD
@@ -132,7 +143,7 @@ typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
 
 
 
-class RTCDriver {
+class RTCDriver : public SavingInterfaceClass {
 private:
 	SemaphoreHandle_t  * smph;
 	uint8_t intToBCD(uint8_t num);
@@ -141,16 +152,21 @@ private:
 	fncPntr _fp_readi2c = nullptr;
     int8_t _timeZone = TIME_ZONE;
 	QueueHandle_t queueCommand;
-	unsigned int topicSize = 10;
-public:
-	// TODO sttime should be private
+	unsigned int topicSize = CONFIG_TOPIC_SIZE;
 	_ttime sttime;
+public:
+	//SavingInterfaceClass interface functions
+	cJSON* Save();
+	void Load(cJSON*);
 
-	RTCDriver(SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
+	RTCDriver(std::string name, SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
 	QueueHandle_t getCommandQueue(void);
 
 	esp_err_t readAllRegsFromRTC(void);
 	esp_err_t writeAllRegsToRTC(void);
+	esp_err_t readControl1Reg(uint8_t *);
+	esp_err_t writeControl1Reg(uint8_t);
+	esp_err_t resetRTC(void);
 	esp_err_t readControl2Reg(uint8_t *);
 	esp_err_t writeControl2Reg(uint8_t);
 	esp_err_t writeTimeToRTC(void);

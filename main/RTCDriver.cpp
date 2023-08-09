@@ -8,16 +8,20 @@
 #include "RTCDriver.h"
 
 
-/*RTCDriver::RTCDriver(SemaphoreHandle_t * Smpf) {
-	this->smph = Smpf;
+std::ostream& operator<<(std::ostream& os, eTimeClockFreq e)
+{
+	switch(e)
+	{
+		case _4kHz : os << "4kHz";    	break;
+		case _64Hz : os << "64Hz";    	break;
+		case sec   : os << "Second ";   break;
+		case Min   : os << "Minute";    break;
+		default	   : throw std::out_of_range("The eTimeClockFreq enumerator used with unknown value");
+	}
+	return os;
+}
 
-
-
-	// TODO Auto-generated constructor stub
-
-}*/
-
-RTCDriver::RTCDriver(SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) {
+RTCDriver::RTCDriver(std::string name,SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) : SavingInterfaceClass(name) {
 	this->smph = Smpf;
 	this->_fp_readi2c = preadI2CFnc;
 	this->_fp_writei2c = pwriteI2CFnc;
@@ -27,6 +31,8 @@ RTCDriver::RTCDriver(SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwrit
 QueueHandle_t RTCDriver::getCommandQueue(void) {
 	return this->queueCommand;
 }
+
+
 
 esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	esp_err_t ret;
@@ -52,14 +58,36 @@ esp_err_t RTCDriver::isTimerWakeUp(bool updateRequired, bool * bReturn) {
 	return ret;
 }
 
+esp_err_t RTCDriver::readControl1Reg(uint8_t * reg){
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL1 , (uint8_t *)(&(this->sttime.Control1)), 1);
+	xSemaphoreGive(*(this->smph));
+	//if(ret == ESP_OK) {
+		*reg = (this->sttime.Control1);
+	//}
+	return ret;
+}
+
+esp_err_t RTCDriver::writeControl1Reg(uint8_t reg){
+	esp_err_t ret;
+	xSemaphoreTake(*(this->smph), portMAX_DELAY);
+	ret = this->_fp_writei2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL1 , &reg , 1);
+	xSemaphoreGive(*(this->smph));
+	return ret;
+}
+esp_err_t RTCDriver::resetRTC(void) {
+	return writeControl1Reg(RESET_RTC);
+}
+
 esp_err_t RTCDriver::readControl2Reg(uint8_t * reg) {
 	esp_err_t ret;
 	xSemaphoreTake(*(this->smph), portMAX_DELAY);
-	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , reg , 1);
+	ret = this->_fp_readi2c(I2C_MASTER_NUM, ADDRESS_RTC, REG_ADDR_CONTROL2 , (uint8_t *)(&(this->sttime.Control2)), 1);
 	xSemaphoreGive(*(this->smph));
-	if(ret == ESP_OK) {
-		reg = &(this->sttime.Control2);
-	}
+	//if(ret == ESP_OK) {
+		*reg = (this->sttime.Control2);
+	//}
 	return ret;
 }
 
@@ -335,7 +363,7 @@ esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
 }
 
 RTCDriver::~RTCDriver() {
-	// TODO Auto-generated destructor stub
+	vQueueDelete(queueCommand);
 }
 
 uint8_t RTCDriver::intToBCD(uint8_t num) {
@@ -349,6 +377,8 @@ uint8_t RTCDriver::bcdToInt(uint8_t bcd) {
 
 void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 
+	// in case of update requires the EPOCH shall be read out with the old TimeZone settings
+	// before re-calculated with the new TimeZone value.
 	if(timeupdate == true)
 	{
 		long epoch;
@@ -365,3 +395,16 @@ void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 int8_t RTCDriver::getTimeZone(void) {
 	return this->_timeZone;
 }
+
+void RTCDriver::Load(cJSON * p_json) {
+	_timeZone = cJSON_GetObjectItem(p_json,"TimeZone")->valueint;
+}
+
+cJSON* RTCDriver::Save() {
+	cJSON * RTCObject;
+	RTCObject = cJSON_CreateObject();
+	cJSON_AddNumberToObject(RTCObject, "TimeZone", _timeZone);
+	return RTCObject;
+}
+
+
