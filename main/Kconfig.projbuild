@@ -94,7 +94,18 @@ menu "RTC_MS"
     		default 27
     		help
 				This pin used for Measuring the Battery Voltage
-						  			  
+		config BATTERY_ADC_NUM				  			  
+			depends on SELECT_MANUAL_CONFIG
+			int "Select main ADC number"
+    		default 1
+    		help
+				This pin used for Measuring the Battery Voltage
+		config BATTERY_ADC_CHANNEL				  			  
+			depends on SELECT_MANUAL_CONFIG
+			int "Manual ADC Channel Config"
+    		default 7
+    		help
+				This pin used for Measuring the Battery Voltage
     endmenu
 
 endmenu

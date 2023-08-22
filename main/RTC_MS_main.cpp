@@ -93,7 +93,7 @@ static void scan_done_handler(void)
     if (esp_wifi_scan_get_ap_records(&sta_number, (wifi_ap_record_t *)ap_list_buffer) == ESP_OK) {
         for (i = 0; i < sta_number; i++) {
            // ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X][%12s]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5], auth_mode_type(ap_list_buffer[i].authmode));
-        	cout << TAG << ap_list_buffer[i].ssid <<"[rssi="<< ap_list_buffer[i].rssi<<"][MAC="<< std::hex << ap_list_buffer[i].bssid[0]<<":"<<std::hex<<ap_list_buffer[i].bssid[1]<<":"<<std::hex<<ap_list_buffer[i].bssid[2]<<":"<<std::hex<<ap_list_buffer[i].bssid[3]<<":"<<std::hex<<ap_list_buffer[i].bssid[4]<<":"<<std::hex<<ap_list_buffer[i].bssid[5]<<":"<<"]["<<auth_mode_type(ap_list_buffer[i].authmode)<<endl;
+        	cout << TAG<< ":" << ap_list_buffer[i].ssid <<"[rssi="<< std::dec <<ap_list_buffer[i].rssi<<"][MAC="<< std::hex << ap_list_buffer[i].bssid[0]<<":"<<ap_list_buffer[i].bssid[1]<<":"<<ap_list_buffer[i].bssid[2]<<":"<<ap_list_buffer[i].bssid[3]<<":"<<ap_list_buffer[i].bssid[4]<<":"<<ap_list_buffer[i].bssid[5]<<":"<<"]["<<auth_mode_type(ap_list_buffer[i].authmode)<<"]"<<endl;
         }
     }
     free(ap_list_buffer);
@@ -411,6 +411,10 @@ extern "C" void app_main(void)
 			 }
 			 else if (x.command[0] == 'F' && x.command[1] == 'M') {
 				 cout << esp_get_free_heap_size() << " bytes" << endl;
+			 }
+			 else if (x.command[0] == 'G' && x.command[1] == 'V') {
+				 cout << "Battery Read "<< batt.readADC() << endl;
+				 cout << "Battery Read "<< batt.getBatteryVoltage() << " [mV] " << endl;
 			 }
 
 		 }

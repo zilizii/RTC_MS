@@ -40,11 +40,23 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 
 	gpio_num_t adc_gpio_num;
 	esp_err_t r;
-	r = adc2_pad_get_io_num( channel, &adc_gpio_num );
+
+#if (CONFIG_BATTERY_ADC_NUM == 1)
+		r = adc_pad_get_io_num(channel, &adc_gpio_num);
+#else
+		r = adc2_pad_get_io_num(channel, &adc_gpio_num);
+#endif
 	assert( r == ESP_OK );
 
 	cout << "ADC Channel " << adc_gpio_num << endl;
-	adc2_config_channel_atten( channel, ADC_ATTEN_0db );
+
+#if (CONFIG_BATTERY_ADC_NUM == 1)
+	    adc1_config_channel_atten( channel, ADC_ATTEN_0db );
+#else
+		adc2_config_channel_atten( channel, ADC_ATTEN_0db );
+#endif
+
+
 
 	upperLimit = 4200;
 	lowerLimit = 0;
@@ -58,9 +70,23 @@ BatteryMGM::~BatteryMGM() {
 int BatteryMGM::readADC(void) {
 	esp_err_t r;
 	int read_raw = 0;
-	r = adc2_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
+
+#if (CONFIG_BATTERY_ADC_NUM == 1)
+		r = adc1_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
+#else
+		r = adc2_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
+#endif
+
 	if ( r == ESP_OK ) {
 		return read_raw;
+	} else if ( r == ESP_ERR_TIMEOUT )
+	{
+#if (CONFIG_BATTERY_ADC_NUM == 2)
+
+		cout << "Wifi is running ";
+#else
+		cout << "Time OUT ERROR " ;
+#endif
 	}
 	return -1;
 }
