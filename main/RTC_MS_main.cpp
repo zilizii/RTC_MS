@@ -89,13 +89,14 @@ static void scan_done_handler(void)
         ESP_LOGE(TAG, "Failed to malloc buffer to print scan results");
         return;
     }
-
+    std::ios_base::fmtflags f( cout.flags() );
     if (esp_wifi_scan_get_ap_records(&sta_number, (wifi_ap_record_t *)ap_list_buffer) == ESP_OK) {
         for (i = 0; i < sta_number; i++) {
            // ESP_LOGI(TAG, "[%s][rssi=%d][MAC=%X:%X:%X:%X:%X:%X][%12s]", ap_list_buffer[i].ssid, ap_list_buffer[i].rssi, ap_list_buffer[i].bssid[0],ap_list_buffer[i].bssid[1],ap_list_buffer[i].bssid[2],ap_list_buffer[i].bssid[3],ap_list_buffer[i].bssid[4],ap_list_buffer[i].bssid[5], auth_mode_type(ap_list_buffer[i].authmode));
-        	cout << TAG<< ":" << ap_list_buffer[i].ssid <<"[rssi="<< std::dec <<ap_list_buffer[i].rssi<<"][MAC="<< std::hex << ap_list_buffer[i].bssid[0]<<":"<<ap_list_buffer[i].bssid[1]<<":"<<ap_list_buffer[i].bssid[2]<<":"<<ap_list_buffer[i].bssid[3]<<":"<<ap_list_buffer[i].bssid[4]<<":"<<ap_list_buffer[i].bssid[5]<<":"<<"]["<<auth_mode_type(ap_list_buffer[i].authmode)<<"]"<<endl;
+        	cout << TAG<< ":" << ap_list_buffer[i].ssid <<"[rssi="<<static_cast<int> (ap_list_buffer[i].rssi)<<"][MAC="<< std::hex << static_cast<int>(ap_list_buffer[i].bssid[0])<<":"<<static_cast<int>(ap_list_buffer[i].bssid[1])<<":"<<static_cast<int>(ap_list_buffer[i].bssid[2])<<":"<<static_cast<int>(ap_list_buffer[i].bssid[3])<<":"<<static_cast<int>(ap_list_buffer[i].bssid[4])<<":"<<static_cast<int>(ap_list_buffer[i].bssid[5])<<":"<<"]["<<auth_mode_type(ap_list_buffer[i].authmode)<< std::dec<<"]"<<endl;
         }
     }
+    cout.flags( f );  // restore flags state
     free(ap_list_buffer);
 }
 
@@ -161,7 +162,6 @@ void setGPIOasInput(int gpioNum) {
 	gpioModeNative.pin_bit_mask = (1ULL<<gpioNum);
 	gpioModeNative.mode = GPIO_MODE_INPUT;
 	// TODO : With the pull down the WAKE UP button okay, !INT shall be checked parallel
-	// TODO : better config shall be implemented according to HW variants
 	gpioModeNative.pull_up_en = GPIO_PULLUP_DISABLE;
 	gpioModeNative.pull_down_en = GPIO_PULLDOWN_ENABLE;
 	gpio_config(&gpioModeNative);
