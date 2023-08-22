@@ -31,7 +31,6 @@ const char* BatteryTypeToString(BatteryType b);
 std::ostream& operator<<(std::ostream& os, BatteryType e);
 static std::map<std::string, BatteryType> BatteryTypeEnumMap = {{"Lithium", BatteryType::Lithium},{"Lifepo4", BatteryType::Lifepo4},{"AAx3",BatteryType::AAx3}};
 
-
 class BatteryMGM : public SavingInterfaceClass {
 private:
 	uint16_t upperLimit;
@@ -44,13 +43,6 @@ public:
 	int getBatteryVoltage();
 	cJSON* Save();
 	void Load(cJSON*);
-
-
-	//removed due to concept change,
-	/*friend std::ofstream & operator << (std::ofstream & , BatteryMGM );
-	friend std::ifstream & operator >> (std::ifstream & , BatteryMGM & );
-	void WriteContent( std::ofstream& );*/
-
 };
 
 #endif /* MAIN_BATTERYMGM_H_ */

@@ -35,7 +35,7 @@
  * Please check the necessary Schematic corresponding to the HW variants
  */
 
-static const adc2_channel_t channel = ADC2_CHANNEL_7;
+
 #define CONFIG_PATH "/spiffs/config.txt"
 
 
@@ -45,20 +45,34 @@ static const adc2_channel_t channel = ADC2_CHANNEL_7;
 	#define REED_SWITCH CONFIG_REED_SWITCH
 	#define ON_BOARD_LED CONFIG_ON_BOARD_LED
 	#define BATTERY_ADC_PIN CONFIG_BATTERY_ADC_PIN
+	#define BATTERY_ADC_CHANNEL CONFIG_BATTERY_ADC_CHANNEL;
+
+	#if (BATTERY_ADC_NUM == 1)
+		static const adc1_channel_t channel = (adc2_channel_t)BATTERY_ADC_CHANNEL;
+	#else
+		static const adc2_channel_t channel = (adc2_channel_t)BATTERY_ADC_CHANNEL;
+	#endif
+
+
 #elif defined(CONFIG_SELECT_HW_0_1)
+	static const adc2_channel_t channel = ADC2_CHANNEL_7;
+	#define BATTERY_ADC_CHANNEL ADC2_CHANNEL_7;
+    #define BATTERY_ADC_NUM 2
 	#define MCU_ON 17
 	#define WAKE_UP_GPIO 19
 	#define REED_SWITCH 16
 	#define ON_BOARD_LED 18
-	#define BATTERY_ADC_PIN 27
-
-
 #elif defined(CONFIG_SELECT_HW_0_2)
-	#define MCU_ON 17
+    static const adc1_channel_t channel = ADC1_CHANNEL_5;
+	#define BATTERY_ADC_CHANNEL ADC1_CHANNEL_5;
+	#define BATTERY_ADC_NUM 1
+    #define MCU_ON 17
 	#define WAKE_UP_GPIO 19
 	#define REED_SWITCH 16
 	#define ON_BOARD_LED 18
-	#define BATTERY_ADC_PIN 27
 #endif
+
+
+
 
 #endif /* MAIN_HW_SETUP_H_ */
