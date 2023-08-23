@@ -92,7 +92,9 @@ int BatteryMGM::readADC(void) {
 }
 
 int BatteryMGM::getBatteryVoltage() {
-	return (this->upperLimit - this->lowerLimit) / 4095 * this->readADC();
+	uint16_t v = this->readADC();
+	float batteryVoltage = ((float)v / 4095.0) * 5.41 * 1000;
+	return (int)(batteryVoltage);
 }
 
 
