@@ -99,7 +99,7 @@ int BatteryMGM::readADC(void) {
 
 int BatteryMGM::getBatteryVoltage() {
 	uint16_t v = this->readADC();
-	float batteryVoltage = ((float)v / 4095.0) * 5.7 * 1000.0;
+	float batteryVoltage = ((float)v / 4095.0) * 5.7 * 1100.0;
 	return (int)(batteryVoltage);
 }
 
