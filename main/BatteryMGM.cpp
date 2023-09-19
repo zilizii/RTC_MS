@@ -11,6 +11,9 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+static const adc_atten_t atten = ADC_ATTEN_DB_0;
+static const adc_unit_t unit = ADC_UNIT_1;
+
 
 const char* BatteryTypeToString(BatteryType b) {
 	switch(b)
@@ -41,8 +44,8 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 	gpio_num_t adc_gpio_num;
 	esp_err_t r;
 
-#if (CONFIG_BATTERY_ADC_NUM == 1)
-		r = adc_pad_get_io_num(channel, &adc_gpio_num);
+#if (CONFIG_BATTERY_ADC_NUM == 1) || (BATTERY_ADC_NUM == 1)
+		r = adc1_pad_get_io_num(channel, &adc_gpio_num);
 #else
 		r = adc2_pad_get_io_num(channel, &adc_gpio_num);
 #endif
@@ -50,7 +53,7 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 
 	cout << "ADC Channel " << adc_gpio_num << endl;
 
-#if (CONFIG_BATTERY_ADC_NUM == 1)
+#if (CONFIG_BATTERY_ADC_NUM == 1) || (BATTERY_ADC_NUM == 1)
 	    adc1_config_channel_atten( channel, ADC_ATTEN_0db );
 #else
 		adc2_config_channel_atten( channel, ADC_ATTEN_0db );
@@ -71,8 +74,11 @@ int BatteryMGM::readADC(void) {
 	esp_err_t r;
 	int read_raw = 0;
 
-#if (CONFIG_BATTERY_ADC_NUM == 1)
-		r = adc1_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
+#if (CONFIG_BATTERY_ADC_NUM == 1) || (BATTERY_ADC_NUM == 1)
+		//r = adc1_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
+	r = adc1_config_width(ADC_WIDTH_BIT_12);
+	r |= adc1_config_channel_atten(channel, atten);
+	read_raw = adc1_get_raw( channel);
 #else
 		r = adc2_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
 #endif
@@ -81,7 +87,7 @@ int BatteryMGM::readADC(void) {
 		return read_raw;
 	} else if ( r == ESP_ERR_TIMEOUT )
 	{
-#if (CONFIG_BATTERY_ADC_NUM == 2)
+#if (CONFIG_BATTERY_ADC_NUM == 2) || (BATTERY_ADC_NUM == 2)
 
 		cout << "Wifi is running ";
 #else
@@ -93,7 +99,7 @@ int BatteryMGM::readADC(void) {
 
 int BatteryMGM::getBatteryVoltage() {
 	uint16_t v = this->readADC();
-	float batteryVoltage = ((float)v / 4095.0) * 5.41 * 1000;
+	float batteryVoltage = ((float)v / 4095.0) * 5.7 * 1000.0;
 	return (int)(batteryVoltage);
 }
 

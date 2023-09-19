@@ -63,8 +63,8 @@
 	#define REED_SWITCH 16
 	#define ON_BOARD_LED 18
 #elif defined(CONFIG_SELECT_HW_0_2)
-    static const adc1_channel_t channel = ADC1_CHANNEL_5;
-	#define BATTERY_ADC_CHANNEL ADC1_CHANNEL_5;
+    static const adc1_channel_t channel = ADC1_CHANNEL_7;
+	#define BATTERY_ADC_CHANNEL ADC1_CHANNEL_7;
 	#define BATTERY_ADC_NUM 1
     #define MCU_ON 17
 	#define WAKE_UP_GPIO 19
