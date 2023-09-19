@@ -17,6 +17,7 @@
 #include <fstream>
 #include <string.h>
 #include <cJSON.h>
+#include "IsChangedSingletone.h"
 
 using namespace std;
 
@@ -25,10 +26,14 @@ using namespace std;
 class SavingInterfaceClass {
 private:
 	std::string _name;
+	//bool _isChanged;
+	IsChangedSingletone * instance;
 public:
-	SavingInterfaceClass(std::string name) : _name(name) {};
+	SavingInterfaceClass(std::string name) : _name(name) { this->instance =  IsChangedSingletone::GetInstance(); }
 	virtual ~SavingInterfaceClass();
 	std::string GetClassFriendlyName(void) {return _name;}
+	bool isChanged(void) {return instance->getIsChanged();}
+	void setToChanged() { instance->setToChanged();}
 	virtual cJSON * Save() = 0;
 	virtual void Load( cJSON * ) = 0;
 };

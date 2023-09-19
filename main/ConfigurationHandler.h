@@ -12,6 +12,7 @@
 #include <list>
 #include <cJSON.h>
 #include <SavingInterfaceClass.h>
+#include "IsChangedSingletone.h"
 
 class ConfigurationHandler {
 private:

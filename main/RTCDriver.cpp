@@ -377,6 +377,10 @@ uint8_t RTCDriver::bcdToInt(uint8_t bcd) {
 
 void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 
+	if(this->_timeZone != timeZone){
+		this->setToChanged();
+	}
+
 	// in case of update requires the EPOCH shall be read out with the old TimeZone settings
 	// before re-calculated with the new TimeZone value.
 	if(timeupdate == true)

@@ -52,6 +52,13 @@ void ConfigurationHandler::SaveAllConfiguration() {
 	if(_ll.empty() == true) {
 		return;
 	}
+
+	std::list<SavingInterfaceClass *>::iterator it = _ll.begin();
+	if ( (*it)->isChanged() == false ) {
+		cout<<"[Log] No SaveToFile Action"<< endl;
+		return;
+	}
+
 	cJSON * root;
 	root = cJSON_CreateObject();
 	std::for_each(_ll.begin(), _ll.end(),[&](SavingInterfaceClass *n) {
