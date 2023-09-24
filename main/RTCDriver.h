@@ -102,7 +102,6 @@ std::ostream& operator<<(std::ostream& os, eTimeClockFreq e);
  * */
 
 // DONE operator [] overload for struct
-// TODO check c++ alternatives like std::array
 typedef struct  __attribute__ ((packed)) {
 	uint8_t	Control1;		// 0x00
 	uint8_t	Control2;		// 0x01

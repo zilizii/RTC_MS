@@ -45,6 +45,7 @@
 #include "RTCDriver.h"
 #include "esp_now_stuff.h"
 #include "IsChangedSingletone.h"
+#include "DataStruct.h"
 
 
 
