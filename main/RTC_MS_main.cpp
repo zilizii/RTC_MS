@@ -418,6 +418,9 @@ extern "C" void app_main(void)
 				 cout << "Battery Read "<< batt.readADC() << endl;
 				 cout << "Battery Read "<< batt.getBatteryVoltage() << " [mV] " << endl;
 			 }
+			 else if (x.command[0] == 'C' && x.command[1] == 'I') {
+			 	 checkHWInputs();
+			 }
 
 		 }
 
