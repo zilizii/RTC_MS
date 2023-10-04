@@ -70,7 +70,7 @@ SemaphoreHandle_t i2c_mutex;
 void RXtask(void * parameters);
 void initUART(void);
 
-
+sDataStruct Data;
 
 
 static std::string auth_mode_type(wifi_auth_mode_t auth_mode)
@@ -152,10 +152,10 @@ void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
 
 void checkHWInputs() {
 	//uint8_t pins= 0x0;
-	std::bitset<2> pins;
-	pins[0] = gpio_get_level((gpio_num_t)WAKE_UP_GPIO);
-	pins[1] =  gpio_get_level((gpio_num_t)REED_SWITCH);
-	cout <<"pins: " << pins << endl;
+	//std::bitset<2> pins;
+	Data.pins[0] = gpio_get_level((gpio_num_t)WAKE_UP_GPIO);
+	Data.pins[1] =  gpio_get_level((gpio_num_t)REED_SWITCH);
+	cout <<"pins: " << Data.pins << endl;
 }
 
 void setGPIOasInput(int gpioNum) {

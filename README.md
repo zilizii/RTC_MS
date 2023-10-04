@@ -49,7 +49,7 @@ example command: SE1672944185
 
 `GE` read back the UTC epoch time.  
 example command: GE  
-example output : 
+example output :  
 GET UTC EPOCH : 1678402333
  
 `ST+TimeZone` set timezone and adjust the time as well.   
@@ -65,59 +65,71 @@ example : SL1672944185
 
 `GL` give back the local epoch.  
 example command: GL
-example output : 
+example output :  
 GET LOCAL EPOCH : 1678405837  
 
-'GN' get the current local Date and Time and the state of the Wake Up Timer
-example command: GN
-example output : 
-Time: 23:50:37
-Date: 2023-03-09
-Wake Up by Timer : 0
+`GN` get the current local Date and Time and the state of the Wake Up Timer  
+example command: GN  
+example output :   
+Time: 23:50:37  
+Date: 2023-03-09  
+Wake Up by Timer : 0  
 
-'GC' get the remaining counter value with the time unit
-example command: GC
-example output : 
+`GC` get the remaining counter value with the time unit
+example command: GC  
+example output :   
 1 Minute
 
-'WS' scanning the Wifi AP
-example command : WS
-example output :
-I (270591) RT_MS: [ESP_446B71][rssi=-27][MAC=30:AE:A4:44:6B:71]
-I (270591) RT_MS: [][rssi=-73][MAC=38:31:BF:F4:BB:58]
-I (270591) RT_MS: [UPC1819346][rssi=-74][MAC=34:2C:C4:AB:FF:F0]
-I (270601) RT_MS: [UPCD198CFD][rssi=-92][MAC=90:5C:44:9B:51:DE]
+`WS` scanning the Wifi AP
+example command : WS  
+example output :  
+I (270591) RT_MS: [ESP_446B71][rssi=-27][MAC=30:AE:A4:44:6B:71]  
+I (270591) RT_MS: [][rssi=-73][MAC=38:31:BF:F4:BB:58]  
+I (270591) RT_MS: [UPC1819346][rssi=-74][MAC=34:2C:C4:AB:FF:F0]  
+I (270601) RT_MS: [UPCD198CFD][rssi=-92][MAC=90:5C:44:9B:51:DE]  
 I (270601) RT_MS: sta scan done
 
-'QT' quit from application and save configuration to SPIFF
-example command : QT
+`QT` quit from application and save configuration to SPIFF
+example command : QT  
 example output : ets Jun  8 2016 00:2▒▒ets Jun  8 2016 00:22:57
 
-'GJ' Save Configuration to SPIFF
-example command : GJ
+`GJ` Save Configuration to SPIFF
+example command : GJ  
 example output :
 
-'FM' Get Free Heap size
+`FM` Get Free Heap size
 example command : GM
 example output : 216172 bytes
 
-'LSI' Set LED Light to ON
+`LSI` Set LED Light to ON
 example command : LSI
 example output :
 
-'LSO' Set LED Light to OFF
+`LSO` Set LED Light to OFF
 example command : LSO
 example output :
+
+`GV` Get ADC Voltage
+example command : GV  
+example output :   
+Battery Read 2460  
+Battery Read 3765 [mV]
+
+
+`CI` Check Inputs   
+example command : CI  
+example output : pins: 10  
 
 
 ## Example Output  
 
 ```
-pins: 10
+pins: 01
  SPIFF Init done
-ADC Channel 27
-Battery Read 2754
-Battery Read 2754 [mV]
+ADC Channel 35
+Battery Read 2622
+Battery Read 4008 [mV]
 app_main starting
 Wake Up by Timer : 0
+
 

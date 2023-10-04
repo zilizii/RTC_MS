@@ -8,9 +8,11 @@
 #ifndef MAIN_DATASTRUCT_H_
 #define MAIN_DATASTRUCT_H_
 
+#include <bitset>
+
 typedef struct {
     int batteryVoltage;
-    uint8_t pins;
+    std::bitset<2> pins;
 } sDataStruct;
 
 
