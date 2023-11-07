@@ -24,6 +24,7 @@ public:
 	void registerClass(SavingInterfaceClass *);
 	void LoadAllConfiguration();
 	void SaveAllConfiguration();
+	void ForcedSave();
 };
 
 #endif /* MAIN_CONFIGURATIONHANDLER_H_ */

@@ -212,7 +212,10 @@ extern "C" void app_main(void)
 		cout << "mount or format fails" << std::endl;
 		break;
 	}
+	// TODO : check this
 
+	setenv("HU", "Europe/Budapest", 1);
+	tzset();
 	ConfigurationHandler configHandler(CONFIG_PATH);
 	BatteryMGM batt("BatteryManager");
 	SavingInterfaceClass * battI = &batt;
@@ -409,7 +412,7 @@ extern "C" void app_main(void)
 
 			 }
 			 else if (x.command[0] == 'G' && x.command[1] == 'J') {
-				 configHandler.SaveAllConfiguration();
+				 configHandler.ForcedSave();
 			 }
 			 else if (x.command[0] == 'F' && x.command[1] == 'M') {
 				 cout << esp_get_free_heap_size() << " bytes" << endl;
@@ -420,6 +423,9 @@ extern "C" void app_main(void)
 			 }
 			 else if (x.command[0] == 'C' && x.command[1] == 'I') {
 			 	 checkHWInputs();
+			 }
+			 else if (x.command[0] == 'L' && x.command[1] == 'S') {
+				 ooo->CheckDLS();
 			 }
 
 		 }

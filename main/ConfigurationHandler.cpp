@@ -73,3 +73,12 @@ void ConfigurationHandler::SaveAllConfiguration() {
 	out.close();
 	cJSON_Delete(root);
 }
+
+void ConfigurationHandler::ForcedSave() {
+	if(_ll.empty() == true) {
+			return;
+		}
+	std::list<SavingInterfaceClass *>::iterator it = _ll.begin();
+	(*it)->setToChanged();
+	this->SaveAllConfiguration();
+}

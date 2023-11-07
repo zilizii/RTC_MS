@@ -141,7 +141,6 @@ typedef struct {
 typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
 
 
-
 class RTCDriver : public SavingInterfaceClass {
 private:
 	SemaphoreHandle_t  * smph;
@@ -150,6 +149,7 @@ private:
 	fncPntr _fp_writei2c = nullptr;
 	fncPntr _fp_readi2c = nullptr;
     int8_t _timeZone = TIME_ZONE;
+    int8_t _dls = 0;
 	QueueHandle_t queueCommand;
 	unsigned int topicSize = CONFIG_TOPIC_SIZE;
 	_ttime sttime;
@@ -177,7 +177,8 @@ public:
 	esp_err_t writeTimeFromEpochToRTC(long, bool = true);
 	void setTimeZone(int8_t, bool = false);
 	int8_t getTimeZone(void);
-
+	esp_err_t CheckDLS();
+	bool IsDst(int day, int month, int dow);
 
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
