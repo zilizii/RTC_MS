@@ -448,8 +448,6 @@ void RXtask(void * parameters) {
 	    	data[rxBytes] = 0;
 	    	strcpy(rx.command, (char *)data);
 	    	xQueueSendToBack(queueCommand, &rx, portMAX_DELAY);
-//	        ESP_LOGI(RX_TASK_TAG, "Read %d bytes: '%s'", rxBytes, data);
-//	        ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
 	    }
 	}
 	free(data);

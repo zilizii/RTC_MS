@@ -3,7 +3,7 @@
 This example demonstrates usage of automotive grade external I2C RTC in ESP-IDF environment.
 To show a usecase in a real world application a "MailBox Notifier" demo build up. The Application together with the PCB board is able to track a mailbox OPEN or CLOSED state and send out to a receiver uController. The communication via ESP-NOW protocol.
 Some of the parameters has a SAVE/LOAD capability to SPIFF file system.
-
+Day Light Save Functionality is implemented, to be future proof as a parameter can be stored in the future.
 
 ## How to use example
 
@@ -119,6 +119,36 @@ Battery Read 3765 [mV]
 `CI` Check Inputs   
 example command : CI  
 example output : pins: 10  
+
+`LS` Day Light Save Check
+example command : LS
+Example output : 
+
+in case of the DLS day on october last Sunday and the time is not 3 AM.
+
+l->tm_mday, l->tm_mon, l->tm_wday29 10 0
+DLS : 0 stored DLS : 1
+No action until time ...
+
+in case of the time is over the 3AM
+
+Time: 03:02:36
+Date: 2023-10-29
+Wake Up by Timer : 0
+l->tm_mday, l->tm_mon, l->tm_wday29 10 0
+DLS : 0 stored DLS : 1
+Time: 02:02:46
+Date: 2023-10-29
+
+in case of no DLS
+
+l->tm_mday, l->tm_mon, l->tm_wday16 11 4
+DLS : 0 stored DLS : 0
+
+`RR` Reset RTC
+example command : RR
+Example output : 
+
 
 
 ## Example Output  
