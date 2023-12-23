@@ -35,9 +35,7 @@
  * Please check the necessary Schematic corresponding to the HW variants
  */
 
-
 #define CONFIG_PATH "/spiffs/config.txt"
-
 
 #if defined(CONFIG_SELECT_MANUAL_CONFIG)
 	#define MCU_ON CONFIG_MCU_ON_GPIO
@@ -71,8 +69,5 @@
 	#define REED_SWITCH 16
 	#define ON_BOARD_LED 18
 #endif
-
-
-
 
 #endif /* MAIN_HW_SETUP_H_ */

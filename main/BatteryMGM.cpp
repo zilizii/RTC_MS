@@ -54,9 +54,10 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 	cout << "ADC Channel " << adc_gpio_num << endl;
 
 #if (BATTERY_ADC_NUM == 1)
-	    adc1_config_channel_atten( channel, ADC_ATTEN_0db );
+	    adc1_config_channel_atten( channel, ADC_ATTEN_DB_0 );
+
 #else
-		adc2_config_channel_atten( channel, ADC_ATTEN_0db );
+		adc2_config_channel_atten( channel, ADC_ATTEN_DB_0 );
 #endif
 
 
@@ -80,7 +81,7 @@ int BatteryMGM::readADC(void) {
 	r |= adc1_config_channel_atten(channel, atten);
 	read_raw = adc1_get_raw( channel);
 #else
-		r = adc2_get_raw( channel, ADC_WIDTH_12Bit, &read_raw);
+		r = adc2_get_raw( channel, ADC_WIDTH_BIT_12, &read_raw);
 #endif
 
 	if ( r == ESP_OK ) {

@@ -7,8 +7,6 @@
 
 #include "SavingInterfaceClass.h"
 
-
-
 SavingInterfaceClass::~SavingInterfaceClass() {
 }
 

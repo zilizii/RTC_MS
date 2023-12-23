@@ -277,7 +277,7 @@ long RTCDriver::getEpochUTC(void) {
 
 void RTCDriver::updateTimeFromEpoch(long epoch, bool timeZoneUpdateReq) {
 	struct tm *tm;
-	long e = epoch;
+	long long e = epoch;
 	if(timeZoneUpdateReq == true) {
 		e +=  ((long)this->_timeZone * HOURS_SECS);
 	}
@@ -425,7 +425,7 @@ esp_err_t RTCDriver::CheckDLS() {
 	}
 
 	struct tm *l;
-	long epoch;
+	long long epoch;
 	int8_t l_dsl;
 	epoch = getEpoch();
 	l = gmtime(&epoch);

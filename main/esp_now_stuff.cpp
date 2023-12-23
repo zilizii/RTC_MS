@@ -49,9 +49,9 @@ static esp_err_t InitEspNowChannel(void) {
 
 	esp_err_t ret;
 	// base esp-idf function calls
-	ESP_ERROR_CHECK(esp_now_init());
+	/*ESP_ERROR_CHECK(esp_now_init());
 	ESP_ERROR_CHECK(esp_now_register_send_cb(esp_now_send_cb) );
-	ESP_ERROR_CHECK(esp_now_register_recv_cb(esp_now_recv_cb) );
+	ESP_ERROR_CHECK(esp_now_register_recv_cb(esp_now_recv_cb) );*/
 
 
 	ret = ESP_OK;

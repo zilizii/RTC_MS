@@ -138,7 +138,8 @@ typedef struct {
 
 // Typedef for the function pointers --> seems both the read and write use the similar definition...
 
-typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
+typedef esp_err_t (*fncPntr)(i2c_port_t, uint8_t, uint8_t, uint8_t *, size_t );
+
 
 
 class RTCDriver : public SavingInterfaceClass {
