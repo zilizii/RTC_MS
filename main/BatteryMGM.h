@@ -24,18 +24,21 @@
 #include "driver/adc.h"
 #include "esp_system.h"
 
-
-enum BatteryType { Lithium, Lifepo4, AAx3};
+enum BatteryType {
+	Lithium, Lifepo4, AAx3
+};
 
 const char* BatteryTypeToString(BatteryType b);
-std::ostream& operator<<(std::ostream& os, BatteryType e);
-static std::map<std::string, BatteryType> BatteryTypeEnumMap = {{"Lithium", BatteryType::Lithium},{"Lifepo4", BatteryType::Lifepo4},{"AAx3",BatteryType::AAx3}};
+std::ostream& operator<<(std::ostream &os, BatteryType e);
+static std::map<std::string, BatteryType> BatteryTypeEnumMap = { { "Lithium",
+		BatteryType::Lithium }, { "Lifepo4", BatteryType::Lifepo4 }, { "AAx3",
+		BatteryType::AAx3 } };
 
-class BatteryMGM : public SavingInterfaceClass {
+class BatteryMGM: public SavingInterfaceClass {
 private:
 	uint16_t upperLimit;
 	uint16_t lowerLimit;
-    BatteryType batt;
+	BatteryType batt;
 public:
 	BatteryMGM(std::string name);
 	virtual ~BatteryMGM();

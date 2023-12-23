@@ -12,17 +12,22 @@
 #include <list>
 #include <cJSON.h>
 #include <SavingInterfaceClass.h>
+#include "IsChangedSingletone.h"
 
 class ConfigurationHandler {
 private:
 	std::string _path;
-	std::list<SavingInterfaceClass *> _ll;
+	std::list<SavingInterfaceClass*> _ll;
 public:
-	ConfigurationHandler(std::string path) : _path(path) {};
+	ConfigurationHandler(std::string path) :
+			_path(path) {
+	}
+	;
 	virtual ~ConfigurationHandler();
-	void registerClass(SavingInterfaceClass *);
+	void registerClass(SavingInterfaceClass*);
 	void LoadAllConfiguration();
 	void SaveAllConfiguration();
+	void ForcedSave();
 };
 
 #endif /* MAIN_CONFIGURATIONHANDLER_H_ */

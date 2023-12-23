@@ -266,6 +266,7 @@ long RTCDriver::getEpoch(void) {
 	t.tm_hour = RTCDriver::bcdToInt(this->sttime.Hours & FILTER_HOURS);
 	t.tm_min  = RTCDriver::bcdToInt(this->sttime.Minutes & FILTER_MINS);
 	t.tm_sec  = RTCDriver::bcdToInt(this->sttime.Seconds & FILTER_SECS);
+
 	return mktime(&t) ;
 }
 
@@ -276,7 +277,7 @@ long RTCDriver::getEpochUTC(void) {
 
 void RTCDriver::updateTimeFromEpoch(long epoch, bool timeZoneUpdateReq) {
 	struct tm *tm;
-	long e = epoch;
+	long long e = epoch;
 	if(timeZoneUpdateReq == true) {
 		e +=  ((long)this->_timeZone * HOURS_SECS);
 	}
@@ -377,6 +378,10 @@ uint8_t RTCDriver::bcdToInt(uint8_t bcd) {
 
 void RTCDriver::setTimeZone(int8_t timeZone, bool timeupdate) {
 
+	if(this->_timeZone != timeZone){
+		this->setToChanged();
+	}
+
 	// in case of update requires the EPOCH shall be read out with the old TimeZone settings
 	// before re-calculated with the new TimeZone value.
 	if(timeupdate == true)
@@ -398,13 +403,64 @@ int8_t RTCDriver::getTimeZone(void) {
 
 void RTCDriver::Load(cJSON * p_json) {
 	_timeZone = cJSON_GetObjectItem(p_json,"TimeZone")->valueint;
+	_dls = cJSON_GetObjectItem(p_json,"DayLightSave")->valueint;
 }
 
 cJSON* RTCDriver::Save() {
 	cJSON * RTCObject;
 	RTCObject = cJSON_CreateObject();
 	cJSON_AddNumberToObject(RTCObject, "TimeZone", _timeZone);
+	cJSON_AddNumberToObject(RTCObject, "DayLightSave", _dls);
+
 	return RTCObject;
 }
 
+esp_err_t RTCDriver::CheckDLS() {
+	esp_err_t ret;
+	// get up to date time data from RTC
+	ret = this->readAllRegsFromRTC();
+	if(ret != ESP_OK)
+	{
+		return ret;
+	}
 
+	struct tm *l;
+	long long epoch;
+	int8_t l_dsl;
+	epoch = getEpoch();
+	l = gmtime(&epoch);
+	cout<< "l->tm_mday, l->tm_mon, l->tm_wday" << l->tm_mday<< " " << l->tm_mon + EPOCH_BIAS_MONTH<< " " <<l->tm_wday<<endl;
+	l_dsl =  IsDst(l->tm_mday, l->tm_mon + EPOCH_BIAS_MONTH, l->tm_wday) ? 1 :0;
+	cout << "DLS : " << unsigned(l_dsl) << " stored DLS : " << unsigned(_dls) << endl;
+	if(l_dsl != _dls )
+	{
+		//If the DLS changed in a Sunday --> hopefully the day of the DSL changes, check the time is over,
+		// other wise change can happen immediately
+		//if(      ( (l->tm_wday == 0) && ((l->tm_hour >= 3) && (l->tm_mon + EPOCH_BIAS_MONTH)==10 ) || (l->tm_hour >= 2 && (l->tm_mon + EPOCH_BIAS_MONTH)==3 )) || (l->tm_wday > 0))
+		if ((l->tm_wday > 0) || ( (l->tm_wday == 0) &&  ( (l->tm_hour >= 3) && (((l->tm_mon + EPOCH_BIAS_MONTH)==10 ) || (((l->tm_hour >= 2) && (l->tm_mon + EPOCH_BIAS_MONTH)==3 )))) ) )
+		{
+			this->setToChanged();
+			_dls = l_dsl;
+			if(l_dsl == 0)
+				l_dsl = -1;
+			epoch = epoch + l_dsl * HOURS_SECS;
+			writeTimeFromEpochToRTC(epoch,false);
+		}else{
+			cout << "No action until time ..." << endl;
+
+		}
+	}
+	return ret;
+}
+
+bool RTCDriver::IsDst(int day, int month, int dow) {
+	if (month < 3 || month > 10)  return false;
+	if (month > 3 && month < 10)  return true;
+
+	int previousSunday = day - dow;
+
+	if (month == 3) return previousSunday >= 25;
+	if (month == 10) return previousSunday < 25;
+
+	return false; // this line never gonna happend
+}

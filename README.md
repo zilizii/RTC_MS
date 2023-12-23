@@ -3,7 +3,7 @@
 This example demonstrates usage of automotive grade external I2C RTC in ESP-IDF environment.
 To show a usecase in a real world application a "MailBox Notifier" demo build up. The Application together with the PCB board is able to track a mailbox OPEN or CLOSED state and send out to a receiver uController. The communication via ESP-NOW protocol.
 Some of the parameters has a SAVE/LOAD capability to SPIFF file system.
-
+Day Light Save Functionality is implemented, to be future proof as a parameter can be stored in the future.
 
 ## How to use example
 
@@ -49,7 +49,7 @@ example command: SE1672944185
 
 `GE` read back the UTC epoch time.  
 example command: GE  
-example output : 
+example output :  
 GET UTC EPOCH : 1678402333
  
 `ST+TimeZone` set timezone and adjust the time as well.   
@@ -65,59 +65,101 @@ example : SL1672944185
 
 `GL` give back the local epoch.  
 example command: GL
-example output : 
+example output :  
 GET LOCAL EPOCH : 1678405837  
 
-'GN' get the current local Date and Time and the state of the Wake Up Timer
-example command: GN
-example output : 
-Time: 23:50:37
-Date: 2023-03-09
-Wake Up by Timer : 0
+`GN` get the current local Date and Time and the state of the Wake Up Timer  
+example command: GN  
+example output :   
+Time: 23:50:37  
+Date: 2023-03-09  
+Wake Up by Timer : 0  
 
-'GC' get the remaining counter value with the time unit
-example command: GC
-example output : 
+`GC` get the remaining counter value with the time unit
+example command: GC  
+example output :   
 1 Minute
 
-'WS' scanning the Wifi AP
-example command : WS
-example output :
-I (270591) RT_MS: [ESP_446B71][rssi=-27][MAC=30:AE:A4:44:6B:71]
-I (270591) RT_MS: [][rssi=-73][MAC=38:31:BF:F4:BB:58]
-I (270591) RT_MS: [UPC1819346][rssi=-74][MAC=34:2C:C4:AB:FF:F0]
-I (270601) RT_MS: [UPCD198CFD][rssi=-92][MAC=90:5C:44:9B:51:DE]
+`WS` scanning the Wifi AP
+example command : WS  
+example output :  
+I (270591) RT_MS: [ESP_446B71][rssi=-27][MAC=30:AE:A4:44:6B:71]  
+I (270591) RT_MS: [][rssi=-73][MAC=38:31:BF:F4:BB:58]  
+I (270591) RT_MS: [UPC1819346][rssi=-74][MAC=34:2C:C4:AB:FF:F0]  
+I (270601) RT_MS: [UPCD198CFD][rssi=-92][MAC=90:5C:44:9B:51:DE]  
 I (270601) RT_MS: sta scan done
 
-'QT' quit from application and save configuration to SPIFF
-example command : QT
+`QT` quit from application and save configuration to SPIFF
+example command : QT  
 example output : ets Jun  8 2016 00:2▒▒ets Jun  8 2016 00:22:57
 
-'GJ' Save Configuration to SPIFF
-example command : GJ
+`GJ` Save Configuration to SPIFF
+example command : GJ  
 example output :
 
-'FM' Get Free Heap size
+`FM` Get Free Heap size
 example command : GM
 example output : 216172 bytes
 
-'LSI' Set LED Light to ON
+`LSI` Set LED Light to ON
 example command : LSI
 example output :
 
-'LSO' Set LED Light to OFF
+`LSO` Set LED Light to OFF
 example command : LSO
 example output :
+
+`GV` Get ADC Voltage
+example command : GV  
+example output :   
+Battery Read 2460  
+Battery Read 3765 [mV]
+
+
+`CI` Check Inputs   
+example command : CI  
+example output : pins: 10  
+
+`LS` Day Light Save Check
+example command : LS
+Example output : 
+
+in case of the DLS day on october last Sunday and the time is not 3 AM.
+
+l->tm_mday, l->tm_mon, l->tm_wday29 10 0
+DLS : 0 stored DLS : 1
+No action until time ...
+
+in case of the time is over the 3AM
+
+Time: 03:02:36
+Date: 2023-10-29
+Wake Up by Timer : 0
+l->tm_mday, l->tm_mon, l->tm_wday29 10 0
+DLS : 0 stored DLS : 1
+Time: 02:02:46
+Date: 2023-10-29
+
+in case of no DLS
+
+l->tm_mday, l->tm_mon, l->tm_wday16 11 4
+DLS : 0 stored DLS : 0
+
+`RR` Reset RTC
+example command : RR
+Example output : 
+
 
 
 ## Example Output  
 
 ```
-pins: 10
+pins: 01
  SPIFF Init done
-ADC Channel 27
-Battery Read 2754
-Battery Read 2754 [mV]
+ADC Channel 35
+Battery Read 2622
+Battery Read 4008 [mV]
 app_main starting
 Wake Up by Timer : 0
+
 

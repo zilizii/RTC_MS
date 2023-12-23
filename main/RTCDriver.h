@@ -102,7 +102,6 @@ std::ostream& operator<<(std::ostream& os, eTimeClockFreq e);
  * */
 
 // DONE operator [] overload for struct
-// TODO check c++ alternatives like std::array
 typedef struct  __attribute__ ((packed)) {
 	uint8_t	Control1;		// 0x00
 	uint8_t	Control2;		// 0x01
@@ -139,7 +138,7 @@ typedef struct {
 
 // Typedef for the function pointers --> seems both the read and write use the similar definition...
 
-typedef int32_t (*fncPntr)(int,uint8_t,uint8_t,uint8_t *, size_t );
+typedef esp_err_t (*fncPntr)(i2c_port_t, uint8_t, uint8_t, uint8_t *, size_t );
 
 
 
@@ -151,6 +150,7 @@ private:
 	fncPntr _fp_writei2c = nullptr;
 	fncPntr _fp_readi2c = nullptr;
     int8_t _timeZone = TIME_ZONE;
+    int8_t _dls = 0;
 	QueueHandle_t queueCommand;
 	unsigned int topicSize = CONFIG_TOPIC_SIZE;
 	_ttime sttime;
@@ -178,7 +178,8 @@ public:
 	esp_err_t writeTimeFromEpochToRTC(long, bool = true);
 	void setTimeZone(int8_t, bool = false);
 	int8_t getTimeZone(void);
-
+	esp_err_t CheckDLS();
+	bool IsDst(int day, int month, int dow);
 
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
