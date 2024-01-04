@@ -21,7 +21,12 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
-#include "driver/adc.h"
+// remove old way to use of adc
+//#include "driver/adc.h"
+// new driver added
+#include "esp_adc/adc_oneshot.h"
+//#include "esp_adc/adc_cali.h"
+//#include "esp_adc/adc_cali_scheme.h"
 #include "esp_system.h"
 
 enum BatteryType {
@@ -39,6 +44,7 @@ private:
 	uint16_t upperLimit;
 	uint16_t lowerLimit;
 	BatteryType batt;
+	adc_oneshot_unit_handle_t adc_handle;
 public:
 	BatteryMGM(std::string name);
 	virtual ~BatteryMGM();

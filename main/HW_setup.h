@@ -15,10 +15,11 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
-#include "driver/adc.h"
+#include "hal/adc_types.h"
+//
 
 #if CONFIG_IDF_TARGET_ESP32
-#include "esp_adc_cal.h"
+
 #endif
 
 /*
@@ -42,27 +43,19 @@
 	#define WAKE_UP_GPIO CONFIG_WAKE_UP_GPIO
 	#define REED_SWITCH CONFIG_REED_SWITCH
 	#define ON_BOARD_LED CONFIG_ON_BOARD_LED
-	#define BATTERY_ADC_PIN CONFIG_BATTERY_ADC_PIN
 	#define BATTERY_ADC_CHANNEL CONFIG_BATTERY_ADC_CHANNEL;
     #define BATTERY_ADC_NUM CONFIG_BATTERY_ADC_NUM
-	#if (BATTERY_ADC_NUM == 1)
-		static const adc1_channel_t channel = (adc2_channel_t)BATTERY_ADC_CHANNEL;
-	#else
-		static const adc2_channel_t channel = (adc2_channel_t)BATTERY_ADC_CHANNEL;
-	#endif
-
+	static const adc_channel_t channel = (adc_channel_t)BATTERY_ADC_CHANNEL;
 
 #elif defined(CONFIG_SELECT_HW_0_1)
-	static const adc2_channel_t channel = ADC2_CHANNEL_7;
-	#define BATTERY_ADC_CHANNEL ADC2_CHANNEL_7;
+	static const adc_channel_t channel = ADC_CHANNEL_7;
     #define BATTERY_ADC_NUM 2
 	#define MCU_ON 17
 	#define WAKE_UP_GPIO 19
 	#define REED_SWITCH 16
 	#define ON_BOARD_LED 18
 #elif defined(CONFIG_SELECT_HW_0_2)
-    static const adc1_channel_t channel = ADC1_CHANNEL_7;
-	#define BATTERY_ADC_CHANNEL ADC1_CHANNEL_7;
+	static const adc_channel_t channel = ADC_CHANNEL_7;
 	#define BATTERY_ADC_NUM 1
     #define MCU_ON 17
 	#define WAKE_UP_GPIO 19
