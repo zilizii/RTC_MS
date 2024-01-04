@@ -15,12 +15,18 @@ ESP32 set up to 16M with 4M application and 1M SPIFFS --> reconfigurable from 'p
 
 ### Configure the project
 
+The ESP-IDF version used for the project : ESP-IDF v5.1.2-292-g4fe15460ab
+pls install this branch of the ESP-IDF to have a proper prerequisites for this project. 
+
 ```
 idf.py menuconfig
 ```
 Please use the 'RTC_MS/I2C Config' menu to set SCL, SDA GPIO pins, I2C port and the frequency
 Please use the 'RTC_MS/RV-8263-C7 RTC Driver' menu to setup basic parameters of the RTC timer
 Please use the 'RTC_MS/HW Dependent' menu to setup the HW versions|setup your PIN layout
+
+Latest HW version is v0.2
+ 
 
 ### Tuning of the application
 
@@ -98,15 +104,15 @@ example command : GJ
 example output :
 
 `FM` Get Free Heap size
-example command : GM
+example command : GM  
 example output : 216172 bytes
 
 `LSI` Set LED Light to ON
-example command : LSI
+example command : LSI  
 example output :
 
 `LSO` Set LED Light to OFF
-example command : LSO
+example command : LSO  
 example output :
 
 `GV` Get ADC Voltage
@@ -121,7 +127,7 @@ example command : CI
 example output : pins: 10  
 
 `LS` Day Light Save Check
-example command : LS
+example command : LS  
 Example output : 
 
 in case of the DLS day on october last Sunday and the time is not 3 AM.
@@ -146,7 +152,7 @@ l->tm_mday, l->tm_mon, l->tm_wday16 11 4
 DLS : 0 stored DLS : 0
 
 `RR` Reset RTC
-example command : RR
+example command : RR  
 Example output : 
 
 
