@@ -226,6 +226,8 @@ extern "C" void app_main(void) {
 	bool bRTCWakeUpByTimer;
 
 	wifiInit();
+	ESP_ERROR_CHECK(InitEspNowChannel());
+
 
 	_scommand x;
 	initUART();
@@ -426,6 +428,8 @@ extern "C" void app_main(void) {
 	cout << "app_main done" << endl;
 	esp_vfs_spiffs_unregister(NULL);
 }
+
+
 
 void RXtask(void *parameters) {
 	static const char *RX_TASK_TAG = "RX_TASK";

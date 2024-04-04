@@ -24,12 +24,8 @@ typedef struct {
 	int data_len;
 } esp_now_event_recv_cb_t;
 
-static void esp_now_send_cb(const uint8_t *mac_addr,
-		esp_now_send_status_t status);
-
-static void esp_now_recv_cb(const uint8_t *mac_addr, const uint8_t *data,
-		int len);
-
-static esp_err_t InitEspNowChannel(void);
+void esp_now_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status);
+void esp_now_recv_cb(const esp_now_recv_info_t * esp_now_info, const uint8_t *data, int data_len);
+esp_err_t InitEspNowChannel(void);
 
 #endif /* MAIN_ESP_NOW_STUFF_H_ */
