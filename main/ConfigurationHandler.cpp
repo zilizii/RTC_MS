@@ -26,6 +26,8 @@ void ConfigurationHandler::LoadAllConfiguration() {
 	FILE *file = fopen(_path.c_str(), "r");
 	if (file == NULL) {
 		std::cout << "File does not exist : " << _path << std::endl;
+		std::list<SavingInterfaceClass*>::iterator it = _ll.begin();
+		(*it)->setToChanged();
 		return;
 	}
 	char line[256];

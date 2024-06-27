@@ -304,6 +304,7 @@ extern "C" void app_main(void) {
 			} else if (x.command[0] == 'W' && x.command[1] == 'S') {
 				ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
 			} else if (x.command[0] == 'G' && x.command[1] == 'N') {
+				//ESP_ERROR_CHECK(ooo->CheckDLS());
 				ESP_ERROR_CHECK(ooo->readHoursFromRTC(&hour));
 				ESP_ERROR_CHECK(ooo->readMinutesFromRTC(&minute));
 				ESP_ERROR_CHECK(ooo->readSecondsFromRTC(&second));

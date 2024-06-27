@@ -10,6 +10,9 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+
+static QueueHandle_t esp_now_queue;
+
 void esp_now_send_cb(const uint8_t * mac_addr, esp_now_send_status_t status ) {
 	// when data sent out
 	if(mac_addr == NULL) {
@@ -38,6 +41,9 @@ void esp_now_recv_cb(const esp_now_recv_info_t * esp_now_info, const uint8_t *da
 			cout << "Receive cb arg error" << endl;
 			return;
 	 }
+	//cout << esp_now_info->src_addr << " Msg" << endl;
+
+
 	//TODO : write the basic data handler here...
 	// memcpy the data
 	// check
