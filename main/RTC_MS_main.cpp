@@ -10,7 +10,6 @@
 #include <driver/gpio.h>
 #include <esp_attr.h>
 #include <esp_err.h>
-//#include <esp_event_legacy.h>
 #include <esp_interface.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
@@ -31,6 +30,8 @@
 #include <cmath>
 #include <cstring>
 #include <string.h>
+#include <functional>
+#include <map>
 #include <bitset>
 #include <iostream>
 #include "sdkconfig.h"
@@ -153,8 +154,6 @@ void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
 }
 
 void checkHWInputs() {
-	//uint8_t pins= 0x0;
-	//std::bitset<2> pins;
 	Data.pins[0] = gpio_get_level((gpio_num_t) WAKE_UP_GPIO);
 	Data.pins[1] = gpio_get_level((gpio_num_t) REED_SWITCH);
 	cout << "pins: " << Data.pins << endl;
@@ -174,20 +173,15 @@ void setGPIOasInput(int gpioNum) {
 void setHWInputs() {
 	gpioSetup(MCU_ON, OUTPUT, HIGH);
 	gpioSetup(REED_SWITCH, INPUT, LOW);
-	//HW sees as always high
-	//gpioSetup(WAKE_UP_GPIO, INPUT, LOW);
 	setGPIOasInput(WAKE_UP_GPIO);
 	gpioSetup(ON_BOARD_LED, OUTPUT, LOW);
 
 }
 
-/* Inside .cpp file, app_main function must be declared with C linkage */
-extern "C" void app_main(void) {
-	//gpioSetup(MCU_ON, OUTPUT, HIGH);
-	setHWInputs();
-	checkHWInputs();
 
-	esp_vfs_spiffs_conf_t config = { .base_path = "/spiffs", .partition_label =
+
+
+/*esp_vfs_spiffs_conf_t config = { .base_path = "/spiffs", .partition_label =
 			NULL, .max_files = 5, .format_if_mount_failed = true, };
 	esp_err_t ret = esp_vfs_spiffs_register(&config);
 
@@ -208,26 +202,67 @@ extern "C" void app_main(void) {
 		cout << "mount or format fails" << std::endl;
 		break;
 	}
-	// TODO : check this
+	*/
 
+
+void init_spiffs() {
+    
+    esp_vfs_spiffs_conf_t config = { .base_path = "/spiffs", .partition_label =
+			NULL, .max_files = 5, .format_if_mount_failed = true, };
+	esp_err_t ret = esp_vfs_spiffs_register(&config);
+
+    switch (ret) {
+		case ESP_OK:
+			cout << " SPIFF Init done" << std::endl;
+			break;
+		case ESP_ERR_NO_MEM:
+			cout << " if objects could not be allocated" << std::endl;
+			return;
+		case ESP_ERR_INVALID_STATE:
+			cout << "already mounted or partition is encrypted" << std::endl;
+			return;
+		case ESP_ERR_NOT_FOUND:
+			cout << "partition for SPIFFS was not found" << std::endl;
+			return;
+		case ESP_FAIL:
+			cout << "mount or format fails" << std::endl;
+			return;
+	}
+
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(NULL, &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "SPIFFS partition size: total: %d, used: %d", total, used);
+    }
+    
+    return;
+}
+
+/* Inside .cpp file, app_main function must be declared with C linkage */
+extern "C" void app_main(void) {
+
+	setHWInputs();
+	checkHWInputs();
+	init_spiffs();	
 	setenv("HU", "Europe/Budapest", 1);
 	tzset();
 	ConfigurationHandler configHandler(CONFIG_PATH);
+	
 	BatteryMGM batt("BatteryManager");
 	SavingInterfaceClass *battI = &batt;
 	configHandler.registerClass(battI);
+	
 	cout << "Battery Read " << batt.readADC() << endl;
 	cout << "Battery Read " << batt.getBatteryVoltage() << " [mV] " << endl;
-	//esp_err_t ret;
+	
+	esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month = 0, date = 0, hour = 0, minute = 0, second = 0;
 	//uint8_t counter = 0;
 	int qL = 0;
 	bool bRTCWakeUpByTimer;
-
-	wifiInit();
-	ESP_ERROR_CHECK(InitEspNowChannel());
-
 
 	_scommand x;
 	initUART();
@@ -247,22 +282,33 @@ extern "C" void app_main(void) {
 	SavingInterfaceClass *rtcI = ooo;
 	configHandler.registerClass(rtcI);
 
+// config file read and process 
 	configHandler.LoadAllConfiguration();
+
 
 	queueCommand = ooo->getCommandQueue();
 	ret = ooo->readAllRegsFromRTC();
 	if (ret != ESP_OK) {
 		cout << "i2c Read Failed" << endl;
 	}
-	cout << "app_main starting" << endl;
+	
+	
+	// how to init Wifi --> depends on the reason of wake up
+
+	wifiInit();
+	ESP_ERROR_CHECK(InitEspNowChannel());
+
+/*
+* Here I the logic has to implemented based on the HW and RTC checks 
+*/
+
+
 
 	//removed for testing purpose
 	//ooo->writeTimerValueToRTC(5);
 	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
 	//ooo->writeTimerModeToRTC(0b11111); // 0b11111
 
-	xTaskCreate(RXtask, "uart_rx_task", 1024 * 2, NULL, configMAX_PRIORITIES,
-			NULL);
 
 	wifi_scan_config_t scan_config;
 	memset(&scan_config, 0, sizeof(scan_config));
@@ -273,8 +319,16 @@ extern "C" void app_main(void) {
 	scan_config.show_hidden = true;
 // Wake up reason check
 	ooo->isTimerWakeUp(true, &bRTCWakeUpByTimer);
+	Data.pins[2] = bRTCWakeUpByTimer;
 	cout << "Wake Up by Timer : " << bRTCWakeUpByTimer << endl;
+	
+	cout << "app_main starting" << endl;
 
+	xTaskCreate(RXtask, "uart_rx_task", 1024 * 2, NULL, configMAX_PRIORITIES,
+			NULL);
+
+	
+	
 	while (true) {
 
 		qL = uxQueueMessagesWaiting(ooo->getCommandQueue());

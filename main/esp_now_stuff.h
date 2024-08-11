@@ -18,6 +18,8 @@
 #include <cstdio>
 #include <sys/_stdint.h>
 #include <stdio.h>
+#include "SavingInterfaceClass.h"
+#include <list>
 
 #define ESP_NOW_QUEUE_SIZE           6
 
@@ -82,5 +84,18 @@ typedef struct {
 void esp_now_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status);
 void esp_now_recv_cb(const esp_now_recv_info_t * esp_now_info, const uint8_t *data, int data_len);
 esp_err_t InitEspNowChannel(void);
+
+
+
+
+class ConnectToESPNOW : public SavingInterfaceClass{
+	private:
+		std::list< uint8_t[ESP_NOW_ETH_ALEN]> client_macs;
+		bool _isConfigured;
+	public:
+		cJSON* Save();
+		void Load(cJSON*);
+	
+};
 
 #endif /* MAIN_ESP_NOW_STUFF_H_ */

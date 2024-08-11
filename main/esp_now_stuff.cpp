@@ -11,6 +11,7 @@ using std::endl;
 using std::runtime_error;
 
 
+
 static QueueHandle_t esp_now_queue;
 
 void esp_now_send_cb(const uint8_t * mac_addr, esp_now_send_status_t status ) {
@@ -67,6 +68,30 @@ esp_err_t InitEspNowChannel(void) {
 	return ret;
 }
 
+
+
+
+void ConnectToESPNOW::Load(cJSON * p_json) {
+	
+	cJSON *isConfJSON = cJSON_GetObjectItem(p_json, "isConfigured");
+	if(cJSON_IsTrue(isConfJSON) == 0) {
+		_isConfigured = true;
+	}else{
+		_isConfigured = false;
+	}
+	
+	
+					//TODO  cJSON_GetArray	
+}
+
+cJSON* ConnectToESPNOW::Save() {
+	cJSON * RTCObject;
+	RTCObject = cJSON_CreateObject();
+	cJSON_AddItemToObject (RTCObject, "isConfigured", cJSON_CreateBool(_isConfigured) );
+	
+
+	return RTCObject;
+}
 
 
 
