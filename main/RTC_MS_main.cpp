@@ -26,7 +26,19 @@
 #include <nvs_flash.h>
 #include <sys/_stdint.h>
 #include <esp_netif.h>
+
+
+#include <esp_wifi.h>
+#include <esp_event.h>
 #include <esp_log.h>
+#include <esp_system.h>
+#include <nvs_flash.h>
+#include <sys/param.h>
+#include <esp_netif.h>
+#include <esp_eth.h>
+#include <protocol_examples_common.h>
+#include <esp_http_server.h>
+
 #include <cmath>
 #include <cstring>
 #include <string.h>
@@ -48,8 +60,6 @@
 #include "IsChangedSingletone.h"
 #include "DataStruct.h"
 
-//#include "esp_event_loop.h"
-#include "esp_event.h"
 
 using std::cout;
 using std::endl;
@@ -240,6 +250,90 @@ void init_spiffs() {
     return;
 }
 
+
+// WebSocket context
+static httpd_handle_t server = NULL;
+
+esp_err_t ws_handler(httpd_req_t *req) {
+    if (req->method == HTTP_GET) {
+        httpd_ws_frame_t ws_pkt;
+        memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+        ws_pkt.final = true;
+        ws_pkt.payload = (uint8_t*)"Lofasz";
+        ws_pkt.len = 7;
+        //ws_pkt.len = stateMachine.getCurrentState().length();
+        return httpd_ws_send_frame(req, &ws_pkt);
+    } else if (req->method == HTTP_POST) {
+        httpd_ws_frame_t ws_pkt;
+        memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+        ws_pkt.payload = (uint8_t*)malloc(128);
+        httpd_ws_recv_frame(req, &ws_pkt, 128);
+        ws_pkt.payload[ws_pkt.len] = '\0';
+
+		cout<< "WS : \""<<ws_pkt.payload <<"\"" <<endl;
+
+       /* if (strcmp((char*)ws_pkt.payload, "TOGGLE") == 0) {
+            stateMachine.triggerTransition();
+           // ws_pkt.payload = (uint8_t*)stateMachine.getCurrentState().c_str();
+           //ws_pkt.len = stateMachine.getCurrentState().length();
+            httpd_ws_send_frame(req, &ws_pkt);
+        }*/
+        free(ws_pkt.payload);
+        return ESP_OK;
+    }
+    return ESP_FAIL;
+}
+
+
+httpd_uri_t s_ws = {
+    .uri = "/ws",
+    .method = HTTP_GET,
+    .handler = ws_handler,
+    .is_websocket = true
+};
+
+
+esp_err_t index_handler(httpd_req_t *req) {
+    // Open the file from SPIFFS
+    FILE* f = fopen("/spiffs/index.html", "r");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+
+    // Read the file content and send it as a response
+    char line[256];
+    while (fgets(line, sizeof(line), f) != NULL) {
+        httpd_resp_sendstr_chunk(req, line);
+    }
+
+    // Close the file
+    fclose(f);
+
+    // Signal the end of response
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+void start_webserver() {
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    if (httpd_start(&server, &config) == ESP_OK) {
+        httpd_uri_t index_uri = {
+            .uri = "/",
+            .method = HTTP_GET,
+            .handler = index_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(server, &index_uri);
+
+        // Register the WebSocket handler
+        httpd_register_uri_handler(server, &s_ws);
+    }
+}
+
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void) {
 
@@ -297,7 +391,11 @@ extern "C" void app_main(void) {
 
 	wifiInit();
 	ESP_ERROR_CHECK(InitEspNowChannel());
-
+	//config button cause the wake up
+	if (Data.pins[0] == 1) {
+		start_webserver();
+	}
+	
 /*
 * Here I the logic has to implemented based on the HW and RTC checks 
 */

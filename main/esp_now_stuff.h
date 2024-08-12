@@ -90,9 +90,10 @@ esp_err_t InitEspNowChannel(void);
 
 class ConnectToESPNOW : public SavingInterfaceClass{
 	private:
-		std::list< uint8_t[ESP_NOW_ETH_ALEN]> client_macs;
+		std::list< uint8_t[ESP_NOW_ETH_ALEN]> _llClientMacs;
 		bool _isConfigured;
 	public:
+		ConnectToESPNOW(std::string name);
 		cJSON* Save();
 		void Load(cJSON*);
 	

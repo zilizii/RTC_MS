@@ -69,7 +69,11 @@ esp_err_t InitEspNowChannel(void) {
 }
 
 
-
+ConnectToESPNOW::ConnectToESPNOW(std::string name) : SavingInterfaceClass(name) {
+	_isConfigured = false;
+	_llClientMacs.clear();
+	
+}
 
 void ConnectToESPNOW::Load(cJSON * p_json) {
 	
