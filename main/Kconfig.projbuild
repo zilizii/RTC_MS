@@ -44,8 +44,7 @@ menu "RTC_MS"
     endmenu
     
     menu "HW Dependent"
-    	
-    	
+    		
     	choice SELECT_HW_CONFIG_MODE
     	prompt "Select the HW Configuration Mode"
     	default SELECT_HW_0_1
@@ -103,5 +102,33 @@ menu "RTC_MS"
 				This is select the channel for the ADC
 				
     endmenu
+    
+    menu "Wifi AP Settings"
+
+	    config ESP_WIFI_SSID
+	        string "WiFi SSID"
+	        default "RTC_MS"
+	        help
+	            SSID (network name) for the example to connect to.
+	
+	    config ESP_WIFI_PASSWORD
+	        string "WiFi Password"
+	        default "mypassword"
+	        help
+	            WiFi password (WPA or WPA2) for the example to use.
+	    config ESP_WIFI_CHANNEL
+	        int "WiFi Channel"
+	        range 1 13
+	        default 1
+	        help
+	            WiFi channel (network channel) for the example to use.
+	
+	    config ESP_MAX_STA_CONN
+	        int "Maximal STA connections"
+	        default 1
+	        help
+	            Max number of the STA connects to AP.
+	endmenu
+    
 
 endmenu

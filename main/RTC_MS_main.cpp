@@ -66,6 +66,11 @@ using std::endl;
 using std::runtime_error;
 
 #define MAXIMUM_AP 20
+#define EXAMPLE_ESP_WIFI_SSID      CONFIG_ESP_WIFI_SSID
+#define EXAMPLE_ESP_WIFI_PASS      CONFIG_ESP_WIFI_PASSWORD
+#define EXAMPLE_ESP_WIFI_CHANNEL   CONFIG_ESP_WIFI_CHANNEL
+#define EXAMPLE_MAX_STA_CONN       CONFIG_ESP_MAX_STA_CONN
+
 
 static const char *TAG = "RT_MS";
 static const int RX_BUF_SIZE = 256;
@@ -117,6 +122,21 @@ static void scan_done_handler(void) {
 	free(ap_list_buffer);
 }
 
+static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+                                    int32_t event_id, void* event_data)
+{
+    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+        wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" join, AID=%d",
+                 MAC2STR(event->mac), event->aid);
+    } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d",
+                 MAC2STR(event->mac), event->aid);
+    }
+}
+
+
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 		int32_t event_id, void *event_data) {
 	//TODO: extend with events
@@ -125,6 +145,14 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 		scan_done_handler();
 		ESP_LOGI(TAG, "sta scan done");
 		break;
+	case WIFI_EVENT_AP_STACONNECTED:	
+		wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" join, AID=%d", MAC2STR(event->mac), event->aid);
+		break;
+	case WIFI_EVENT_AP_STADISCONNECTED:	
+		wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event->mac), event->aid);
+        break;
 	default:
 		break;
 	}
@@ -149,6 +177,50 @@ void wifiInit() {
 	ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	ESP_ERROR_CHECK(esp_wifi_start());
+}
+
+void wifiInitAP() {
+	ESP_ERROR_CHECK(nvs_flash_init());
+	ESP_ERROR_CHECK(esp_netif_init());
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
+	esp_netif_create_default_wifi_ap();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &wifi_event_handler,
+                                                        NULL,
+                                                        NULL));
+                                                        
+    wifi_config_t wifi_config = {
+        .ap = {
+            .ssid = EXAMPLE_ESP_WIFI_SSID,
+            .ssid_len = strlen(EXAMPLE_ESP_WIFI_SSID),
+            .channel = EXAMPLE_ESP_WIFI_CHANNEL,
+            .password = EXAMPLE_ESP_WIFI_PASS,
+            .max_connection = EXAMPLE_MAX_STA_CONN,
+#ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
+            .authmode = WIFI_AUTH_WPA3_PSK,
+            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+#else /* CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT */
+            .authmode = WIFI_AUTH_WPA2_PSK,
+#endif
+            .pmf_cfg = {
+                    .required = true,
+            },
+        },
+    };
+	if (strlen(EXAMPLE_ESP_WIFI_PASS) == 0) {
+        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    }
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+
 }
 
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
@@ -349,8 +421,9 @@ extern "C" void app_main(void) {
 	configHandler.registerClass(battI);
 	
 	cout << "Battery Read " << batt.readADC() << endl;
-	cout << "Battery Read " << batt.getBatteryVoltage() << " [mV] " << endl;
 	
+	Data.batteryVoltage=batt.getBatteryVoltage();
+	cout << "Battery Read " << Data.batteryVoltage << " [mV] " << endl;
 	esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month = 0, date = 0, hour = 0, minute = 0, second = 0;
@@ -385,17 +458,19 @@ extern "C" void app_main(void) {
 	if (ret != ESP_OK) {
 		cout << "i2c Read Failed" << endl;
 	}
-	
+	ooo->CheckDLS();
+	Data.epoch= ooo->getEpochUTC();
 	
 	// how to init Wifi --> depends on the reason of wake up
 
-	wifiInit();
-	ESP_ERROR_CHECK(InitEspNowChannel());
 	//config button cause the wake up
 	if (Data.pins[0] == 1) {
+		wifiInitAP();
 		start_webserver();
+	}else{
+		wifiInit();
 	}
-	
+	ESP_ERROR_CHECK(InitEspNowChannel());
 /*
 * Here I the logic has to implemented based on the HW and RTC checks 
 */

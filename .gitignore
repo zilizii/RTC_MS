@@ -2,3 +2,4 @@
 main/build/
 *.old
 .settings/
+*.bin
