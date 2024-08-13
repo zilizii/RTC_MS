@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTC Configurator</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        #state { font-size: 24px; margin-bottom: 20px; }
+        button { font-size: 18px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>ESP32 State Machine</h1>
+    <div id="state">Current State: OFF</div>
+    <button onclick="toggleState()">Toggle State</button>
+
+    <script>
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+        ws.onmessage = function(event) {
+            document.getElementById("state").innerText = `Current State: ${event.data}`;
+        };
+
+        function toggleState() {
+            ws.send("TOGGLE");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+	"BatteryManager":	{
+		"upperLimit":	4200,
+		"lowerLimit":	0,
+		"BatteryType":	"Lithium"
+	},
+	"RTC":	{
+		"TimeZone":	1,
+		"DayLightSave":	1
+	}
+}

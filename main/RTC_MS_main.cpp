@@ -122,7 +122,7 @@ static void scan_done_handler(void) {
 	free(ap_list_buffer);
 }
 
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+/*static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                     int32_t event_id, void* event_data)
 {
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
@@ -134,7 +134,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d",
                  MAC2STR(event->mac), event->aid);
     }
-}
+}*/
 
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
@@ -145,14 +145,18 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 		scan_done_handler();
 		ESP_LOGI(TAG, "sta scan done");
 		break;
-	case WIFI_EVENT_AP_STACONNECTED:	
-		wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
-        ESP_LOGI(TAG, "station "MACSTR" join, AID=%d", MAC2STR(event->mac), event->aid);
+	case WIFI_EVENT_AP_STACONNECTED: {	
+		wifi_event_ap_staconnected_t* event =
+                    (wifi_event_ap_staconnected_t*)event_data;
+        //ESP_LOGI(TAG, "station "MACSTR" join, AID=%d", MAC2STR(event_base->mac), event_base->aid);
 		break;
-	case WIFI_EVENT_AP_STADISCONNECTED:	
-		wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
-        ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event->mac), event->aid);
+		}
+	case WIFI_EVENT_AP_STADISCONNECTED: {	
+		wifi_event_ap_stadisconnected_t* event =
+                    (wifi_event_ap_stadisconnected_t*)event_data;
+        //ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event_base->mac), event_base->aid);
         break;
+        }
 	default:
 		break;
 	}
@@ -197,16 +201,11 @@ void wifiInitAP() {
     wifi_config_t wifi_config = {
         .ap = {
             .ssid = EXAMPLE_ESP_WIFI_SSID,
+            .password = EXAMPLE_ESP_WIFI_PASS,
             .ssid_len = strlen(EXAMPLE_ESP_WIFI_SSID),
             .channel = EXAMPLE_ESP_WIFI_CHANNEL,
-            .password = EXAMPLE_ESP_WIFI_PASS,
-            .max_connection = EXAMPLE_MAX_STA_CONN,
-#ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
-            .authmode = WIFI_AUTH_WPA3_PSK,
-            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-#else /* CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT */
             .authmode = WIFI_AUTH_WPA2_PSK,
-#endif
+            .max_connection = EXAMPLE_MAX_STA_CONN,
             .pmf_cfg = {
                     .required = true,
             },
