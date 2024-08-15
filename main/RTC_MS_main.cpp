@@ -59,6 +59,7 @@
 #include "esp_now_stuff.h"
 #include "IsChangedSingletone.h"
 #include "DataStruct.h"
+#include <freertos/event_groups.h>
 
 
 using std::cout;
@@ -81,7 +82,23 @@ SemaphoreHandle_t i2c_mutex;
 void RXtask(void *parameters);
 void initUART(void);
 
+
+static EventGroupHandle_t my_event_group;
+const static int WS_BIT = BIT1;
+const static int WIFI_BIT = BIT0;
+
+
 sDataStruct Data;
+static esp_err_t ws_handler(httpd_req_t *req);
+static void connect_handler(void* arg, esp_event_base_t event_base,
+                            int32_t event_id, void* event_data);
+httpd_uri_t s_ws = {
+    .uri = "/ws",
+    .method = HTTP_GET,
+    .handler = ws_handler,
+    .is_websocket = true
+};
+
 
 static std::string auth_mode_type(wifi_auth_mode_t auth_mode) {
 	std::string types[] = { "OPEN", "WEP", "WPA PSK", "WPA2 PSK",
@@ -136,6 +153,76 @@ static void scan_done_handler(void) {
     }
 }*/
 
+static httpd_handle_t server = NULL;
+
+esp_err_t index_handler(httpd_req_t *req) {
+						
+    // Open the file from SPIFFS
+    FILE* f = fopen("/spiffs/index.html", "r");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+
+    // Read the file content and send it as a response
+    char line[256];
+    while (fgets(line, sizeof(line), f) != NULL) {
+        httpd_resp_sendstr_chunk(req, line);
+    }
+
+    // Close the file
+    fclose(f);
+
+    // Signal the end of response
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+static httpd_handle_t start_webserver() {
+	
+	cout << "Starting web server" << endl;
+	httpd_handle_t server = NULL;
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    if (httpd_start(&server, &config) == ESP_OK) {
+        httpd_uri_t index_uri = {
+            .uri = "/",
+            .method = HTTP_GET,
+            .handler = index_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(server, &index_uri);
+
+        // Register the WebSocket handler
+        httpd_register_uri_handler(server, &s_ws);
+        return server;
+    }
+
+    ESP_LOGI(TAG, "Error starting server!");
+    return NULL;
+}
+
+static esp_err_t stop_webserver(httpd_handle_t server)
+{
+    // Stop the httpd server
+    return httpd_stop(server);
+}
+
+static void disconnect_handler(void* arg, esp_event_base_t event_base,
+                               int32_t event_id, void* event_data)
+{
+    httpd_handle_t* server = (httpd_handle_t*) arg;
+    if (*server) {
+        ESP_LOGI(TAG, "Stopping webserver");
+        if (stop_webserver(*server) == ESP_OK) {
+            *server = NULL;
+            xEventGroupClearBits(my_event_group, WS_BIT);
+        } else {
+            ESP_LOGE(TAG, "Failed to stop http server");
+        }
+    }
+}
+
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 		int32_t event_id, void *event_data) {
@@ -149,12 +236,25 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 		wifi_event_ap_staconnected_t* event =
                     (wifi_event_ap_staconnected_t*)event_data;
         //ESP_LOGI(TAG, "station "MACSTR" join, AID=%d", MAC2STR(event_base->mac), event_base->aid);
+        xEventGroupSetBits(my_event_group, WIFI_BIT);
 		break;
 		}
 	case WIFI_EVENT_AP_STADISCONNECTED: {	
 		wifi_event_ap_stadisconnected_t* event =
                     (wifi_event_ap_stadisconnected_t*)event_data;
         //ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event_base->mac), event_base->aid);
+        httpd_handle_t* server = (httpd_handle_t*) arg;
+    	if (*server) {
+        	ESP_LOGI(TAG, "Stopping webserver");
+        	if (stop_webserver(*server) == ESP_OK) {
+            	*server = NULL;
+        	} else {
+            	ESP_LOGE(TAG, "Failed to stop http server");
+        	}
+    	}
+        
+        
+        xEventGroupClearBits(my_event_group, WIFI_BIT|WS_BIT);
         break;
         }
 	default:
@@ -163,6 +263,11 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 	return;
 
 }
+
+
+
+
+
 
 /*
  * Wifi Init Function
@@ -191,12 +296,13 @@ void wifiInitAP() {
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, &connect_handler, &server));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, &disconnect_handler, &server));
+    /*ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_event_handler,
                                                         NULL,
-                                                        NULL));
+                                                        NULL));*/
                                                         
     wifi_config_t wifi_config = {
         .ap = {
@@ -219,7 +325,17 @@ void wifiInitAP() {
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
+}
 
+static void connect_handler(void* arg, esp_event_base_t event_base,
+                            int32_t event_id, void* event_data)
+{
+    cout << "Connect to RTC_MS" << endl;
+    httpd_handle_t* server = (httpd_handle_t*) arg;
+    if (*server == NULL) {
+        ESP_LOGI(TAG, "Starting webserver");
+        *server = start_webserver();
+    }
 }
 
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
@@ -322,88 +438,119 @@ void init_spiffs() {
 }
 
 
-// WebSocket context
-static httpd_handle_t server = NULL;
-
-esp_err_t ws_handler(httpd_req_t *req) {
+static esp_err_t ws_handler(httpd_req_t *req)
+{
     if (req->method == HTTP_GET) {
-        httpd_ws_frame_t ws_pkt;
-        memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-        ws_pkt.final = true;
-        ws_pkt.payload = (uint8_t*)"Lofasz";
-        ws_pkt.len = 7;
-        //ws_pkt.len = stateMachine.getCurrentState().length();
-        return httpd_ws_send_frame(req, &ws_pkt);
-    } else if (req->method == HTTP_POST) {
-        httpd_ws_frame_t ws_pkt;
-        memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-        ws_pkt.payload = (uint8_t*)malloc(128);
-        httpd_ws_recv_frame(req, &ws_pkt, 128);
-        ws_pkt.payload[ws_pkt.len] = '\0';
-
-		cout<< "WS : \""<<ws_pkt.payload <<"\"" <<endl;
-
-       /* if (strcmp((char*)ws_pkt.payload, "TOGGLE") == 0) {
-            stateMachine.triggerTransition();
-           // ws_pkt.payload = (uint8_t*)stateMachine.getCurrentState().c_str();
-           //ws_pkt.len = stateMachine.getCurrentState().length();
-            httpd_ws_send_frame(req, &ws_pkt);
-        }*/
-        free(ws_pkt.payload);
+        ESP_LOGI(TAG, "Handshake done, the new connection was opened");
+        xEventGroupSetBits(my_event_group, WS_BIT);
         return ESP_OK;
     }
-    return ESP_FAIL;
-}
+    httpd_ws_frame_t ws_pkt;
+    uint8_t *buf = NULL;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
 
-
-httpd_uri_t s_ws = {
-    .uri = "/ws",
-    .method = HTTP_GET,
-    .handler = ws_handler,
-    .is_websocket = true
-};
-
-
-esp_err_t index_handler(httpd_req_t *req) {
-    // Open the file from SPIFFS
-    FILE* f = fopen("/spiffs/index.html", "r");
-    if (f == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for reading");
-        httpd_resp_send_404(req);
-        return ESP_FAIL;
+    // First receive the full ws message
+    /* Set max_len = 0 to get the frame len */
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d", ret);
+        return ret;
     }
-
-    // Read the file content and send it as a response
-    char line[256];
-    while (fgets(line, sizeof(line), f) != NULL) {
-        httpd_resp_sendstr_chunk(req, line);
+    ESP_LOGI(TAG, "frame len is %d", ws_pkt.len);
+    if (ws_pkt.len) {
+        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
+        buf = (uint8_t*)calloc(1, ws_pkt.len + 1);
+        if (buf == NULL) {
+            ESP_LOGE(TAG, "Failed to calloc memory for buf");
+            return ESP_ERR_NO_MEM;
+        }
+        ws_pkt.payload = buf;
+        /* Set max_len = ws_pkt.len to get the frame payload */
+        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "httpd_ws_recv_frame failed with %d", ret);
+            free(buf);
+            return ret;
+        }
     }
-
-    // Close the file
-    fclose(f);
-
-    // Signal the end of response
-    httpd_resp_sendstr_chunk(req, NULL);
+    // If it was a PONG, update the keep-alive
+    if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
+        ESP_LOGD(TAG, "Received PONG message");
+        free(buf);
+        //return wss_keep_alive_client_is_active(httpd_get_global_user_ctx(req->handle),httpd_req_to_sockfd(req));
+		return ESP_OK;
+    // If it was a TEXT message, just echo it back
+    } else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT || ws_pkt.type == HTTPD_WS_TYPE_PING || ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
+        if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
+            ESP_LOGI(TAG, "Received packet with message: %s", ws_pkt.payload);
+        } else if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
+            // Response PONG packet to peer
+            ESP_LOGI(TAG, "Got a WS PING frame, Replying PONG");
+            ws_pkt.type = HTTPD_WS_TYPE_PONG;
+        } else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
+            // Response CLOSE packet with no payload to peer
+            ws_pkt.len = 0;
+            ws_pkt.payload = NULL;
+            xEventGroupClearBits(my_event_group, WS_BIT);
+            
+        }
+        ret = httpd_ws_send_frame(req, &ws_pkt);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
+        }
+        ESP_LOGI(TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", req->handle,
+                 httpd_req_to_sockfd(req), httpd_ws_get_fd_info(req->handle, httpd_req_to_sockfd(req)));
+        free(buf);
+        return ret;
+    }
+    free(buf);
     return ESP_OK;
 }
 
-void start_webserver() {
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    if (httpd_start(&server, &config) == ESP_OK) {
-        httpd_uri_t index_uri = {
-            .uri = "/",
-            .method = HTTP_GET,
-            .handler = index_handler,
-            .user_ctx = NULL
-        };
-        httpd_register_uri_handler(server, &index_uri);
 
-        // Register the WebSocket handler
-        httpd_register_uri_handler(server, &s_ws);
+
+esp_err_t httpd_ws_send_frame_to_all_clients(httpd_ws_frame_t *ws_pkt) {
+    static constexpr size_t max_clients = CONFIG_LWIP_MAX_LISTENING_TCP;
+    size_t fds = max_clients;
+    int client_fds[max_clients] = {0};
+
+    esp_err_t ret = httpd_get_client_list(server, &fds, client_fds);
+
+    if (ret != ESP_OK) {
+        return ret;
     }
+
+    for (int i = 0; i < fds; i++) {
+        auto client_info = httpd_ws_get_fd_info(server, client_fds[i]);
+        if (client_info == HTTPD_WS_CLIENT_WEBSOCKET) {
+            httpd_ws_send_frame_async(server, client_fds[i], ws_pkt);
+        }
+    }
+
+    return ESP_OK;
 }
+
+
+esp_err_t wsSenderFnc(std::string msg) {
+
+	httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    ws_pkt.final = true;
+    ws_pkt.payload = (uint8_t*)(msg.c_str());
+    ws_pkt.len = msg.length();
+    return httpd_ws_send_frame_to_all_clients(&ws_pkt);
+}
+
+
+
+
+
+
+
+
+
+
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void) {
@@ -411,6 +558,9 @@ extern "C" void app_main(void) {
 	setHWInputs();
 	checkHWInputs();
 	init_spiffs();	
+	
+	my_event_group = xEventGroupCreate();
+	
 	setenv("HU", "Europe/Budapest", 1);
 	tzset();
 	ConfigurationHandler configHandler(CONFIG_PATH);
@@ -465,7 +615,7 @@ extern "C" void app_main(void) {
 	//config button cause the wake up
 	if (Data.pins[0] == 1) {
 		wifiInitAP();
-		start_webserver();
+		//start_webserver();
 	}else{
 		wifiInit();
 	}
@@ -513,6 +663,11 @@ extern "C" void app_main(void) {
 			} else if (x.command[0] == 'G' && x.command[1] == 'E') {
 				ooo->readAllRegsFromRTC();
 				printf("GET UTC EPOCH : %ld \n", ooo->getEpochUTC());
+				
+				if( xEventGroupGetBits(my_event_group) & WS_BIT) { 
+					// Web socket avail
+					wsSenderFnc( to_string(ooo->getEpochUTC() ) );
+				}
 			} else if (x.command[0] == 'S' && x.command[1] == 'L') {
 				ESP_LOGI("SET Local EPOCH", "Read %d bytes: '%s' \n",
 						sizeof(x.command)/sizeof(char), x.command);
