@@ -229,6 +229,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 	//TODO: extend with events
 	switch (event_id) {
 	case WIFI_EVENT_SCAN_DONE:
+		cout << " scan ..." << endl;
 		scan_done_handler();
 		ESP_LOGI(TAG, "sta scan done");
 		break;
@@ -293,18 +294,20 @@ void wifiInitAP() {
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 	esp_netif_create_default_wifi_ap();
-
+	esp_netif_create_default_wifi_sta();
+	
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, &connect_handler, &server));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, &disconnect_handler, &server));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, 		&connect_handler, 		&server));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, 	&disconnect_handler, 	&server));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_SCAN_DONE, 			&wifi_event_handler, 	NULL));
     /*ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_event_handler,
                                                         NULL,
                                                         NULL));*/
                                                         
-    wifi_config_t wifi_config = {
+    wifi_config_t ap_config = {
         .ap = {
             .ssid = EXAMPLE_ESP_WIFI_SSID,
             .password = EXAMPLE_ESP_WIFI_PASS,
@@ -318,13 +321,17 @@ void wifiInitAP() {
         },
     };
 	if (strlen(EXAMPLE_ESP_WIFI_PASS) == 0) {
-        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+        ap_config.ap.authmode = WIFI_AUTH_OPEN;
     }
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    
+    wifi_config_t sta_config = { 0 };
+	// AP Wifi scan return ESP_FAIL --> this is a feature
+   // ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-
+    
 }
 
 static void connect_handler(void* arg, esp_event_base_t event_base,
@@ -683,7 +690,8 @@ extern "C" void app_main(void) {
 			} else if (x.command[0] == 'G' && x.command[1] == 'T') {
 				printf("GET Time Zone : %d \n", ooo->getTimeZone());
 			} else if (x.command[0] == 'W' && x.command[1] == 'S') {
-				ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
+				//ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
+				ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
 			} else if (x.command[0] == 'G' && x.command[1] == 'N') {
 				//ESP_ERROR_CHECK(ooo->CheckDLS());
 				ESP_ERROR_CHECK(ooo->readHoursFromRTC(&hour));
