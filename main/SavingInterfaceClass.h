@@ -41,6 +41,7 @@ public:
 	void setToChanged() {
 		instance->setToChanged();
 	}
+	
 	virtual cJSON* Save() = 0;
 	virtual void Load(cJSON*) = 0;
 };

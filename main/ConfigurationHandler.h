@@ -28,6 +28,8 @@ public:
 	void LoadAllConfiguration();
 	void SaveAllConfiguration();
 	void ForcedSave();
+	
+	SavingInterfaceClass * getClassPointer(std::string name); 
 };
 
 #endif /* MAIN_CONFIGURATIONHANDLER_H_ */

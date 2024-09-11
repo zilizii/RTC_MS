@@ -415,6 +415,10 @@ cJSON* RTCDriver::Save() {
 	return RTCObject;
 }
 
+void RTCDriver::ResetDLS(void) {
+	_dls = 0;
+}
+
 esp_err_t RTCDriver::CheckDLS() {
 	esp_err_t ret;
 	// get up to date time data from RTC
@@ -452,6 +456,39 @@ esp_err_t RTCDriver::CheckDLS() {
 	}
 	return ret;
 }
+
+esp_err_t RTCDriver::ForcedDLSUpdate(void) {
+	esp_err_t ret;
+	// get up to date time data from RTC
+	ret = this->readAllRegsFromRTC();
+	if(ret != ESP_OK)
+	{
+		return ret;
+	}
+
+	struct tm *l;
+	long long epoch;
+	int8_t l_dsl;
+	epoch = getEpoch();
+	l = gmtime(&epoch);
+	
+	ResetDLS();
+	
+	cout<< "l->tm_mday, l->tm_mon, l->tm_wday" << l->tm_mday<< " " << l->tm_mon + EPOCH_BIAS_MONTH<< " " <<l->tm_wday<<endl;
+	l_dsl =  IsDst(l->tm_mday, l->tm_mon + EPOCH_BIAS_MONTH, l->tm_wday) ? 1 :0;
+	cout << "DLS : " << unsigned(l_dsl) << " stored DLS : " << unsigned(_dls) << endl;
+	
+	
+	this->setToChanged();
+	_dls = l_dsl;
+	if(l_dsl == 0)
+		l_dsl = -1;
+	epoch = epoch + l_dsl * HOURS_SECS;
+	writeTimeFromEpochToRTC(epoch,false);
+	return ret;
+	
+}
+
 
 bool RTCDriver::IsDst(int day, int month, int dow) {
 	if (month < 3 || month > 10)  return false;

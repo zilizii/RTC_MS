@@ -74,6 +74,7 @@ void ConfigurationHandler::SaveAllConfiguration() {
 	cJSON_Delete(root);
 }
 
+
 void ConfigurationHandler::ForcedSave() {
 	if (_ll.empty() == true) {
 		return;
@@ -82,3 +83,18 @@ void ConfigurationHandler::ForcedSave() {
 	(*it)->setToChanged();
 	this->SaveAllConfiguration();
 }
+
+
+SavingInterfaceClass * ConfigurationHandler::getClassPointer(std::string name) {
+	if (_ll.empty() == true) {
+		return NULL;
+	}
+	SavingInterfaceClass * ret = NULL;
+	std::for_each(_ll.begin(), _ll.end(), [&](SavingInterfaceClass *n) {
+		if(name.compare( n->GetClassFriendlyName()) == 0) {
+			ret = n;
+		}	
+	});
+	return ret;
+} 
+ 
