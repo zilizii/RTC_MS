@@ -161,12 +161,11 @@ esp_err_t index_handler(httpd_req_t *req) {
 	char line[256];
 	while (fgets(line, sizeof(line), f) != NULL) {
 		httpd_resp_sendstr_chunk(req, line);
-		vTaskDelay(1 / portTICK_PERIOD_MS);
+		//vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
-
 	// Close the file
 	fclose(f);
-
+  	taskYIELD();
 	// Signal the end of response
 	httpd_resp_sendstr_chunk(req, NULL);
 	return ESP_OK;
