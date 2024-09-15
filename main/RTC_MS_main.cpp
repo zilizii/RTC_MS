@@ -596,7 +596,7 @@ extern "C" void app_main(void) {
 		wifiInitAP();
 		// wifi init after the esp init required to start
 		InitEspNowChannel();
-		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 8, (void *)(&configHandler), tskIDLE_PRIORITY, NULL);
+		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 6, (void *)(&configHandler), tskIDLE_PRIORITY, NULL);
 	} else {
 		wifiInit();
 		ESP_ERROR_CHECK(InitEspNowChannel());
@@ -616,7 +616,7 @@ extern "C" void app_main(void) {
 	cout << "app_main starting" << endl;
 
 // only debug purpose
-	xTaskCreate(RXtask, "uart_rx_task", 1024 * 8, NULL, tskIDLE_PRIORITY,
+	xTaskCreate(RXtask, "uart_rx_task", 1024 * 2, NULL, tskIDLE_PRIORITY,
 	NULL);
 
 
@@ -678,10 +678,10 @@ extern "C" void app_main(void) {
 					eTimeClockFreq val = static_cast<eTimeClockFreq>(TD_CHECK(
 							timerMode));
 					cout << unsigned(timerValue) << " " << val
-							<< " Timer Enable " << TE_CHECK(timerMode)
-							<< " Timer Interrupt Enable "
-							<< TIE_CHECK(timerMode) << " Timer Interrupt Mode "
-							<< TI_TP_CHECK(timerMode) << endl;
+						 << " Timer Enable " << TE_CHECK(timerMode)
+						 << " Timer Interrupt Enable "
+						 << TIE_CHECK(timerMode) << " Timer Interrupt Mode "
+						 << TI_TP_CHECK(timerMode) << endl;
 				} catch (const std::range_error &e) {
 					cout << "Exception caught: " << e.what() << endl;
 				}
@@ -833,19 +833,21 @@ void WS_handlerTask(void *parameters) {
 			// TODO here add logic	
 			cout << "WS fun message : [" << *ws_msg << "]" << endl;						
 			cJSON *root = cJSON_Parse((*ws_msg).c_str());
-		
-			cJSON * command = cJSON_GetObjectItem(root, "epoch");
-			if(command != NULL) {
-				long iepoch = cJSON_GetObjectItem(root,"epoch")->valueint;
-				cout << "Epoch :["<< iepoch <<"]"<<endl;
-				SavingInterfaceClass * RTC = config->getClassPointer("RTC");
-				((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
-				((RTCDriver *) RTC)->ForcedDLSUpdate();
+			if(root != NULL) {
+				cJSON * command = cJSON_GetObjectItem(root, "epoch");
+				if(command != NULL) {
+					long iepoch = cJSON_GetObjectItem(root,"epoch")->valueint;
+					cout << "Epoch :["<< iepoch <<"]"<<endl;
+					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
+					((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
+					((RTCDriver *) RTC)->ForcedDLSUpdate();
+				
+				}
+				
+				cJSON_Delete(root);
+			}else{
+				cout << "Parse error : [" << *ws_msg << "]" << endl;			
 			}
-			
-		
-		
-			cJSON_Delete(root);
 			free(ws_msg);
 			ws_msg = NULL;		
 		}
