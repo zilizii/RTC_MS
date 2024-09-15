@@ -9,7 +9,6 @@
 
 ConfigurationHandler::~ConfigurationHandler() {
 	_ll.clear();
-	_path.empty();
 }
 
 void ConfigurationHandler::registerClass(

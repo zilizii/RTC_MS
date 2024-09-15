@@ -74,6 +74,7 @@ static const char *TAG = "RT_MS";
 static const int RX_BUF_SIZE = 256;
 static QueueHandle_t queueCommand;
 static QueueHandle_t qWSCommand;
+static ConfigurationHandler configHandler(CONFIG_PATH);
 
 SemaphoreHandle_t i2c_mutex;
 //RTCDriver ooo;
@@ -131,23 +132,10 @@ static void scan_done_handler(void) {
 	free(ap_list_buffer);
 }
 
-/*static void wifi_event_handler(void* arg, esp_event_base_t event_base,
- int32_t event_id, void* event_data)
- {
- if (event_id == WIFI_EVENT_AP_STACONNECTED) {
- wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
- ESP_LOGI(TAG, "station "MACSTR" join, AID=%d",
- MAC2STR(event->mac), event->aid);
- } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
- wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
- ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d",
- MAC2STR(event->mac), event->aid);
- }
- }*/
 
 static httpd_handle_t server = NULL;
 
-esp_err_t index_handler(httpd_req_t *req) {
+static esp_err_t index_handler(httpd_req_t *req) {
 
 	// Open the file from SPIFFS
 	FILE *f = fopen("/spiffs/index.html", "r");
@@ -161,11 +149,9 @@ esp_err_t index_handler(httpd_req_t *req) {
 	char line[256];
 	while (fgets(line, sizeof(line), f) != NULL) {
 		httpd_resp_sendstr_chunk(req, line);
-		//vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
 	// Close the file
 	fclose(f);
-  	taskYIELD();
 	// Signal the end of response
 	httpd_resp_sendstr_chunk(req, NULL);
 	return ESP_OK;
@@ -177,8 +163,12 @@ static httpd_handle_t start_webserver() {
 	httpd_handle_t server = NULL;
 	httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 	if (httpd_start(&server, &config) == ESP_OK) {
-		httpd_uri_t index_uri = { .uri = "/", .method = HTTP_GET, .handler =
-				index_handler, .user_ctx = NULL };
+		httpd_uri_t index_uri = { 
+			.uri = "/", 
+			.method = HTTP_GET, .handler = index_handler, 
+			.user_ctx = NULL,
+			.is_websocket = false  
+		};
 		httpd_register_uri_handler(server, &index_uri);
 
 		// Register the WebSocket handler
@@ -246,17 +236,41 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 
 }
 
+
+static void initialize_wifi() {
+	
+	
+	ESP_ERROR_CHECK(esp_netif_init());
+	my_event_group = xEventGroupCreate();
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
+	
+	esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
+	assert(ap_netif);
+	esp_netif_t *sta_netif =esp_netif_create_default_wifi_sta();
+	assert(sta_netif);
+
+	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
+	//ESP_ERROR_CHECK( esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &event_handler, NULL) );
+	//ESP_ERROR_CHECK( esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL) );
+
+	
+	ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
+	ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_NULL) );
+	ESP_ERROR_CHECK( esp_wifi_start() );
+		
+}
+
+
 /*
  * Wifi Init Function
  * Support to testing Scan functionality
  * old tcpip removed
  */
-void wifiInit() {
-	ESP_ERROR_CHECK(nvs_flash_init());
-	ESP_ERROR_CHECK(esp_netif_init());
-	ESP_ERROR_CHECK(esp_event_loop_create_default());
-	esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-	assert(sta_netif);
+static void wifiInit() {
+
+	//esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+	//assert(sta_netif);
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
 	wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
@@ -264,15 +278,16 @@ void wifiInit() {
 	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-void wifiInitAP() {
-	ESP_ERROR_CHECK(nvs_flash_init());
-	ESP_ERROR_CHECK(esp_netif_init());
-	ESP_ERROR_CHECK(esp_event_loop_create_default());
-	esp_netif_create_default_wifi_ap();
-	esp_netif_create_default_wifi_sta();
+static void wifiInitAP() {
+	
+	
+	//esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
+	//assert(ap_netif);
+	//esp_netif_t *sta_netif =esp_netif_create_default_wifi_sta();
+	//assert(sta_netif);
 
-	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+	//wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, 		&connect_handler, 		&server));
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, 	&disconnect_handler, 	&server));
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_SCAN_DONE,			&wifi_event_handler, 	NULL));
@@ -282,11 +297,19 @@ void wifiInitAP() {
 	 NULL,
 	 NULL));*/
 
-	wifi_config_t ap_config = { .ap = { .ssid = EXAMPLE_ESP_WIFI_SSID,
-			.password = EXAMPLE_ESP_WIFI_PASS, .ssid_len = strlen(
-					EXAMPLE_ESP_WIFI_SSID), .channel = EXAMPLE_ESP_WIFI_CHANNEL,
-			.authmode = WIFI_AUTH_WPA2_PSK, .max_connection =
-					EXAMPLE_MAX_STA_CONN, .pmf_cfg = { .required = true, }, }, };
+	wifi_config_t ap_config = { 
+		.ap = { 
+			.ssid = EXAMPLE_ESP_WIFI_SSID,
+			.password = EXAMPLE_ESP_WIFI_PASS,
+			.ssid_len = strlen(EXAMPLE_ESP_WIFI_SSID), 
+			.channel = EXAMPLE_ESP_WIFI_CHANNEL,
+			.authmode = WIFI_AUTH_WPA2_PSK, 
+			.max_connection = EXAMPLE_MAX_STA_CONN,
+			.pmf_cfg = { .required = true, }, 
+		}, 
+	};
+	
+	
 	if (strlen(EXAMPLE_ESP_WIFI_PASS) == 0) {
 		ap_config.ap.authmode = WIFI_AUTH_OPEN;
 	}
@@ -505,16 +528,17 @@ esp_err_t wsSenderFnc(std::string msg) {
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void) {
-
+    ESP_ERROR_CHECK( nvs_flash_init());
+   
 	setHWInputs();
 	checkHWInputs();
+	initialize_wifi();
 	init_spiffs();
-
-	my_event_group = xEventGroupCreate();
 
 	setenv("HU", "Europe/Budapest", 1);
 	tzset();
-	ConfigurationHandler configHandler(CONFIG_PATH);
+	//ConfigurationHandler configHandler(CONFIG_PATH);
+	
 
 	BatteryMGM batt("BatteryManager");
 	SavingInterfaceClass *battI = &batt;
@@ -570,27 +594,20 @@ extern "C" void app_main(void) {
 		unsigned int _topicSize = CONFIG_TOPIC_SIZE;
 		qWSCommand =  xQueueCreate(_topicSize, sizeof(std::string *) );
 		wifiInitAP();
-		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 4, (void *)(&configHandler), configMAX_PRIORITIES, NULL);
+		// wifi init after the esp init required to start
+		InitEspNowChannel();
+		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 8, (void *)(&configHandler), tskIDLE_PRIORITY, NULL);
 	} else {
 		wifiInit();
+		ESP_ERROR_CHECK(InitEspNowChannel());
 	}
-	ESP_ERROR_CHECK(InitEspNowChannel());
-	/*
-	 * Here I the logic has to implemented based on the HW and RTC checks 
-	 */
+	
+	
 
-	//removed for testing purpose
-	//ooo->writeTimerValueToRTC(5);
 	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
 	//ooo->writeTimerModeToRTC(0b11111); // 0b11111
 
-	wifi_scan_config_t scan_config;
-	memset(&scan_config, 0, sizeof(scan_config));
-	scan_config.ssid = NULL;
-	scan_config.bssid = NULL;
-	scan_config.channel = 0;
-	scan_config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
-	scan_config.show_hidden = true;
+
 // Wake up reason check
 	ooo->isTimerWakeUp(true, &bRTCWakeUpByTimer);
 	Data.pins[2] = bRTCWakeUpByTimer;
@@ -599,7 +616,7 @@ extern "C" void app_main(void) {
 	cout << "app_main starting" << endl;
 
 // only debug purpose
-	xTaskCreate(RXtask, "uart_rx_task", 1024 * 2, NULL, configMAX_PRIORITIES,
+	xTaskCreate(RXtask, "uart_rx_task", 1024 * 8, NULL, tskIDLE_PRIORITY,
 	NULL);
 
 
@@ -732,10 +749,11 @@ extern "C" void app_main(void) {
 			} else if (x.command[0] == 'Q' && x.command[1] == 'T') {
 				configHandler.SaveAllConfiguration();
 				esp_vfs_spiffs_unregister(NULL);
+				esp_now_deinit();
 				esp_wifi_stop();
 				vTaskDelay(5 / portTICK_PERIOD_MS);
 				gpio_set_level((gpio_num_t) 17, LOW);
-				//esp_restart();
+				esp_restart();
 
 			} else if (x.command[0] == 'L' && x.command[1] == 'S'
 					&& x.command[2] == 'I') {
@@ -779,10 +797,11 @@ void RXtask(void *parameters) {
 		if (rxBytes > 0) {
 			data[rxBytes] = 0;
 			strcpy(rx.command, (char*) data);
-			xQueueSendToBack(queueCommand, &rx, portTICK_PERIOD_MS);
+			xQueueSend(queueCommand, &rx, portTICK_PERIOD_MS);
 		}
 	}
 	free(data);
+	vTaskDelete(NULL);
 }
 
 void initUART(void) {
@@ -832,7 +851,7 @@ void WS_handlerTask(void *parameters) {
 		}
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
-	
+	vTaskDelete(NULL);
 		 
 }
 
