@@ -82,16 +82,14 @@ void RXtask(void *parameters);
 void initUART(void);
 
 static EventGroupHandle_t my_event_group;
-const static int WS_BIT = BIT1;
-const static int WIFI_BIT = BIT0;
+const int WS_BIT = BIT1;
+const int WIFI_BIT = BIT0;
 
 sDataStruct Data;
 static esp_err_t ws_handler(httpd_req_t *req);
 void WS_handlerTask(void *parameters);
-static void connect_handler(void *arg, esp_event_base_t event_base,
-		int32_t event_id, void *event_data);
-httpd_uri_t s_ws = { .uri = "/ws", .method = HTTP_GET, .handler = ws_handler,
-		.is_websocket = true };
+static void connect_handler(void *arg, esp_event_base_t event_base,int32_t event_id, void *event_data);
+httpd_uri_t s_ws = { .uri = "/ws", .method = HTTP_GET, .handler = ws_handler, .is_websocket = true };
 
 static std::string auth_mode_type(wifi_auth_mode_t auth_mode) {
 	std::string types[] = { "OPEN", "WEP", "WPA PSK", "WPA2 PSK",
@@ -160,20 +158,20 @@ static esp_err_t index_handler(httpd_req_t *req) {
 static httpd_handle_t start_webserver() {
 
 	cout << "Starting web server" << endl;
-	httpd_handle_t server = NULL;
+	httpd_handle_t lserver = NULL;
 	httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-	if (httpd_start(&server, &config) == ESP_OK) {
+	if (httpd_start(&lserver, &config) == ESP_OK) {
 		httpd_uri_t index_uri = { 
 			.uri = "/", 
 			.method = HTTP_GET, .handler = index_handler, 
 			.user_ctx = NULL,
 			.is_websocket = false  
 		};
-		httpd_register_uri_handler(server, &index_uri);
+		httpd_register_uri_handler(lserver, &index_uri);
 
 		// Register the WebSocket handler
-		httpd_register_uri_handler(server, &s_ws);
-		return server;
+		httpd_register_uri_handler(lserver, &s_ws);
+		return lserver;
 	}
 
 	ESP_LOGI(TAG, "Error starting server!");
@@ -189,9 +187,10 @@ static void disconnect_handler(void *arg, esp_event_base_t event_base,
 		int32_t event_id, void *event_data) {
 	httpd_handle_t *server = (httpd_handle_t*) arg;
 	if (*server) {
-		ESP_LOGI(TAG, "Stopping webserver");
+		ESP_LOGE(TAG, "Stopping webserver");
 		if (stop_webserver(*server) == ESP_OK) {
 			*server = NULL;
+			cout << TAG << " Stopping webserver done ,,,(ovO),,,"<<endl;
 			xEventGroupClearBits(my_event_group, WS_BIT);
 		} else {
 			ESP_LOGE(TAG, "Failed to stop http server");
@@ -216,14 +215,18 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 	case WIFI_EVENT_AP_STADISCONNECTED: {
 		//wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t*) event_data;
 		//ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event_base->mac), event_base->aid);
-		httpd_handle_t *server = (httpd_handle_t*) arg;
+		httpd_handle_t * server = (httpd_handle_t*) arg;
 		if (*server) {
-			ESP_LOGI(TAG, "Stopping webserver");
+			cout << TAG <<  " Stopping webserver" << endl; 
 			if (stop_webserver(*server) == ESP_OK) {
+				cout << "Done : Web Server is NULL"<< endl;
 				*server = NULL;
 			} else {
 				ESP_LOGE(TAG, "Failed to stop http server");
 			}
+		}else{
+			cout << "ERROR : Disconnect with NULL server "<<endl;
+			
 		}
 
 		xEventGroupClearBits(my_event_group, WIFI_BIT | WS_BIT);
@@ -841,9 +844,7 @@ void WS_handlerTask(void *parameters) {
 					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
 					((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
 					((RTCDriver *) RTC)->ForcedDLSUpdate();
-				
 				}
-				
 				cJSON_Delete(root);
 			}else{
 				cout << "Parse error : [" << *ws_msg << "]" << endl;			
