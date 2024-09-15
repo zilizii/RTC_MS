@@ -10,9 +10,19 @@
 
 #include <bitset>
 
+/*************************************************************************************************
+ * DataStructure for Data to send out the device in case of wake up
+ * Parameter : 
+ *  @epoch           : time stamp
+ *  @batteryVolatage : mV battery measured voltage
+ *  @pins            : reason of wake up -> Button, Reed switch state, RTC interrupt.     
+ ************************************************************************************************/
+
+
 typedef struct {
+    long epoch;
     int batteryVoltage;
-    std::bitset<2> pins;
+    std::bitset<3> pins;
 } sDataStruct;
 
 

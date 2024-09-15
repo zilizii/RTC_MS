@@ -9,7 +9,6 @@
 
 ConfigurationHandler::~ConfigurationHandler() {
 	_ll.clear();
-	_path.empty();
 }
 
 void ConfigurationHandler::registerClass(
@@ -26,6 +25,8 @@ void ConfigurationHandler::LoadAllConfiguration() {
 	FILE *file = fopen(_path.c_str(), "r");
 	if (file == NULL) {
 		std::cout << "File does not exist : " << _path << std::endl;
+		std::list<SavingInterfaceClass*>::iterator it = _ll.begin();
+		(*it)->setToChanged();
 		return;
 	}
 	char line[256];
@@ -72,6 +73,7 @@ void ConfigurationHandler::SaveAllConfiguration() {
 	cJSON_Delete(root);
 }
 
+
 void ConfigurationHandler::ForcedSave() {
 	if (_ll.empty() == true) {
 		return;
@@ -80,3 +82,18 @@ void ConfigurationHandler::ForcedSave() {
 	(*it)->setToChanged();
 	this->SaveAllConfiguration();
 }
+
+
+SavingInterfaceClass * ConfigurationHandler::getClassPointer(std::string name) {
+	if (_ll.empty() == true) {
+		return NULL;
+	}
+	SavingInterfaceClass * ret = NULL;
+	std::for_each(_ll.begin(), _ll.end(), [&](SavingInterfaceClass *n) {
+		if(name.compare( n->GetClassFriendlyName()) == 0) {
+			ret = n;
+		}	
+	});
+	return ret;
+} 
+ 

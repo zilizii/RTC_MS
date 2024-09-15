@@ -153,7 +153,7 @@ private:
     int8_t _dls = 0;
 	QueueHandle_t queueCommand;
 	unsigned int topicSize = CONFIG_TOPIC_SIZE;
-	_ttime sttime;
+	_ttime sttime = {};
 public:
 	//SavingInterfaceClass interface functions
 	cJSON* Save();
@@ -178,8 +178,12 @@ public:
 	esp_err_t writeTimeFromEpochToRTC(long, bool = true);
 	void setTimeZone(int8_t, bool = false);
 	int8_t getTimeZone(void);
+	
+	void ResetDLS(void);
 	esp_err_t CheckDLS();
 	bool IsDst(int day, int month, int dow);
+	esp_err_t ForcedDLSUpdate(void);
+	 
 
 	esp_err_t writeYearToRTC(uint16_t);
 	esp_err_t readYearFromRTC(uint16_t *);
