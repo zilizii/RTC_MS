@@ -185,16 +185,18 @@ static esp_err_t stop_webserver(httpd_handle_t server) {
 
 static void disconnect_handler(void *arg, esp_event_base_t event_base,
 		int32_t event_id, void *event_data) {
-	httpd_handle_t *server = (httpd_handle_t*) arg;
-	if (*server) {
-		ESP_LOGE(TAG, "Stopping webserver");
-		if (stop_webserver(*server) == ESP_OK) {
-			*server = NULL;
+	httpd_handle_t *lserver = (httpd_handle_t*) arg;
+	if (*lserver) {
+		ESP_LOGI(TAG, "Stopping webserver");
+		if (stop_webserver(*lserver) == ESP_OK) {
+			*lserver = NULL;
 			cout << TAG << " Stopping webserver done ,,,(ovO),,,"<<endl;
 			xEventGroupClearBits(my_event_group, WS_BIT);
 		} else {
 			ESP_LOGE(TAG, "Failed to stop http server");
 		}
+	}else{
+		cout << TAG << " Disconnect problem, server was NULL ,,,(ovO)B"<<endl;
 	}
 }
 
@@ -215,12 +217,12 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 	case WIFI_EVENT_AP_STADISCONNECTED: {
 		//wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t*) event_data;
 		//ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event_base->mac), event_base->aid);
-		httpd_handle_t * server = (httpd_handle_t*) arg;
-		if (*server) {
+		httpd_handle_t * lserver = (httpd_handle_t*) arg;
+		if (*lserver) {
 			cout << TAG <<  " Stopping webserver" << endl; 
-			if (stop_webserver(*server) == ESP_OK) {
+			if (stop_webserver(*lserver) == ESP_OK) {
 				cout << "Done : Web Server is NULL"<< endl;
-				*server = NULL;
+				*lserver = NULL;
 			} else {
 				ESP_LOGE(TAG, "Failed to stop http server");
 			}
@@ -329,10 +331,10 @@ static void wifiInitAP() {
 
 static void connect_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
 	cout << "Connect to RTC_MS" << endl;
-	httpd_handle_t *server = (httpd_handle_t*) arg;
-	if (*server == NULL) {
+	httpd_handle_t *lserver = (httpd_handle_t*) arg;
+	if (*lserver == NULL) {
 		ESP_LOGI(TAG, "Starting webserver");
-		*server = start_webserver();
+		*lserver = start_webserver();
 	}
 }
 
@@ -599,7 +601,8 @@ extern "C" void app_main(void) {
 		wifiInitAP();
 		// wifi init after the esp init required to start
 		InitEspNowChannel();
-		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 6, (void *)(&configHandler), tskIDLE_PRIORITY, NULL);
+		//xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 6, (void *)(&configHandler), tskIDLE_PRIORITY, NULL);
+		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 6, NULL, tskIDLE_PRIORITY, NULL);
 	} else {
 		wifiInit();
 		ESP_ERROR_CHECK(InitEspNowChannel());
@@ -751,10 +754,11 @@ extern "C" void app_main(void) {
 				cout << "Start checking the oscilloscope pls..." << endl;
 			} else if (x.command[0] == 'Q' && x.command[1] == 'T') {
 				configHandler.SaveAllConfiguration();
-				esp_vfs_spiffs_unregister(NULL);
 				esp_now_deinit();
 				esp_wifi_stop();
-				vTaskDelay(5 / portTICK_PERIOD_MS);
+				i2c_master_deinit();
+				esp_vfs_spiffs_unregister(NULL);
+				vTaskDelay(10 / portTICK_PERIOD_MS);
 				gpio_set_level((gpio_num_t) 17, LOW);
 				esp_restart();
 
@@ -823,8 +827,8 @@ void initUART(void) {
 void WS_handlerTask(void *parameters) {
 	// task setup
 	int qLen = 0;
-	ConfigurationHandler * config = (ConfigurationHandler * ) parameters;
-	
+	//ConfigurationHandler * config = (ConfigurationHandler * ) parameters;
+	ConfigurationHandler * config = &configHandler;
 	
 	std::string * ws_msg = NULL;
 	// task loop
