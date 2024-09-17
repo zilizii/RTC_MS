@@ -64,7 +64,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
-#define MAXIMUM_AP 20
+//#define MAXIMUM_AP 20
 #define EXAMPLE_ESP_WIFI_SSID      CONFIG_ESP_WIFI_SSID
 #define EXAMPLE_ESP_WIFI_PASS      CONFIG_ESP_WIFI_PASSWORD
 #define EXAMPLE_ESP_WIFI_CHANNEL   CONFIG_ESP_WIFI_CHANNEL
@@ -84,6 +84,7 @@ void initUART(void);
 static EventGroupHandle_t my_event_group;
 const int WS_BIT = BIT1;
 const int WIFI_BIT = BIT0;
+static uint8_t no_clients = 0;
 
 sDataStruct Data;
 static esp_err_t ws_handler(httpd_req_t *req);
@@ -185,19 +186,27 @@ static esp_err_t stop_webserver(httpd_handle_t server) {
 
 static void disconnect_handler(void *arg, esp_event_base_t event_base,
 		int32_t event_id, void *event_data) {
-	httpd_handle_t *lserver = (httpd_handle_t*) arg;
-	if (*lserver) {
+	//httpd_handle_t *lserver = (httpd_handle_t*) arg;
+	if(no_clients != 0 ) no_clients--;
+	
+	
+	if (server != NULL  && no_clients == 0) {
 		ESP_LOGI(TAG, "Stopping webserver");
-		if (stop_webserver(*lserver) == ESP_OK) {
-			*lserver = NULL;
+		if (stop_webserver(server) == ESP_OK) {
+			// memory pointer to Nullptr
+			server = NULL;
 			cout << TAG << " Stopping webserver done ,,,(ovO),,,"<<endl;
-			xEventGroupClearBits(my_event_group, WS_BIT);
+			xEventGroupClearBits(my_event_group, WIFI_BIT | WS_BIT);
+			cout << TAG << " Disconnection happened, Remaining Active Clients : " << static_cast<unsigned int>(no_clients) << " .d(ovO),,," << endl;
 		} else {
 			ESP_LOGE(TAG, "Failed to stop http server");
 		}
+	} else if( no_clients  > 0 ){ 
+		cout << TAG << " Disconnection happened, Remaining Active Clients : " << static_cast<unsigned int>(no_clients) << " .d(ovO),,," << endl;
 	}else{
-		cout << TAG << " Disconnect problem, server was NULL ,,,(ovO)B"<<endl;
+		cout << TAG << " Disconnect problem, server was NULL ,,,(ovO)B" << endl;
 	}
+	
 }
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
@@ -217,7 +226,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 	case WIFI_EVENT_AP_STADISCONNECTED: {
 		//wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t*) event_data;
 		//ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d", MAC2STR(event_base->mac), event_base->aid);
-		httpd_handle_t * lserver = (httpd_handle_t*) arg;
+		/*httpd_handle_t * lserver = (httpd_handle_t*) arg;
 		if (*lserver) {
 			cout << TAG <<  " Stopping webserver" << endl; 
 			if (stop_webserver(*lserver) == ESP_OK) {
@@ -229,7 +238,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 		}else{
 			cout << "ERROR : Disconnect with NULL server "<<endl;
 			
-		}
+		}*/
 
 		xEventGroupClearBits(my_event_group, WIFI_BIT | WS_BIT);
 		break;
@@ -331,11 +340,14 @@ static void wifiInitAP() {
 
 static void connect_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
 	cout << "Connect to RTC_MS" << endl;
-	httpd_handle_t *lserver = (httpd_handle_t*) arg;
-	if (*lserver == NULL) {
+	//httpd_handle_t *lserver = (httpd_handle_t*) arg;
+	no_clients++;
+	if (server == NULL) {
 		ESP_LOGI(TAG, "Starting webserver");
-		*lserver = start_webserver();
+		server = start_webserver();
 	}
+	xEventGroupSetBits(my_event_group, WIFI_BIT);
+	cout << TAG << " Connection happened, Active Clients : " << static_cast<unsigned int>(no_clients)  << " d(ovO)F,," << endl;
 }
 
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
@@ -481,7 +493,8 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 			// Response CLOSE packet with no payload to peer
 			ws_pkt.len = 0;
 			ws_pkt.payload = NULL;
-			xEventGroupClearBits(my_event_group, WS_BIT);
+			if(no_clients <= 1) 
+				xEventGroupClearBits(my_event_group, WS_BIT);
 
 		}
 		ret = httpd_ws_send_frame(req, &ws_pkt);
