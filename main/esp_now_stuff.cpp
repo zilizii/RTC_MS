@@ -12,7 +12,6 @@ using std::runtime_error;
 
 
 
-static QueueHandle_t esp_now_queue;
 
 void esp_now_send_cb(const uint8_t * mac_addr, esp_now_send_status_t status ) {
 	// when data sent out
@@ -70,14 +69,23 @@ esp_err_t InitEspNowChannel(void) {
 
 
 ConnectToESPNOW::ConnectToESPNOW(std::string name) : SavingInterfaceClass(name) {
+	unsigned int _topicSize = CONFIG_TOPIC_SIZE;
 	_isConfigured = false;
+	_isInitalized = false;
 	_llClientMacs.clear();
-	
+	 esp_now_queue = xQueueCreate(_topicSize, sizeof(sDataStruct) );;
+}
+
+QueueHandle_t ConnectToESPNOW::getEspNowQueue(void) {
+	return this->esp_now_queue;
 }
 
 void ConnectToESPNOW::Load(cJSON * p_json) {
 	
 	cJSON *isConfJSON = cJSON_GetObjectItem(p_json, "isConfigured");
+	_MeshName = cJSON_GetObjectItem(p_json,"MeshName")->valuestring;
+	
+	
 	if(cJSON_IsTrue(isConfJSON) == 0) {
 		_isConfigured = true;
 	}else{
@@ -92,9 +100,32 @@ cJSON* ConnectToESPNOW::Save() {
 	cJSON * RTCObject;
 	RTCObject = cJSON_CreateObject();
 	cJSON_AddItemToObject (RTCObject, "isConfigured", cJSON_CreateBool(_isConfigured) );
-	
+	cJSON_AddStringToObject (RTCObject, "MeshName", _MeshName);	
 
 	return RTCObject;
+}
+
+esp_err_t  ConnectToESPNOW::Init(void) {
+	esp_err_t ret = ESP_OK;
+	if(_isInitalized == false){
+		ret = InitEspNowChannel();
+		if (ret == ESP_OK)
+			_isInitalized = true;
+	}
+		return ret;
+}
+
+std::string ConnectToESPNOW::getMeshName(){
+	return _MeshName;
+}
+
+void ConnectToESPNOW::setMeshName(std::string meshName) {
+	if(this->_MeshName != meshName){
+		this->setToChanged();
+	}
+	
+	this->_MeshName = meshName;
+	return;
 }
 
 

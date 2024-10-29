@@ -19,15 +19,12 @@
 #include <esp32/rom/gpio.h>
 #include "esp_spiffs.h"
 #include "driver/uart.h"
-#include <freertos/portmacro.h>
-#include <freertos/task.h>
-#include "freertos/semphr.h"
+
 #include <hal/gpio_types.h>
 #include <nvs_flash.h>
 #include <sys/_stdint.h>
 #include <esp_netif.h>
 
-#include <esp_wifi.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_system.h>
@@ -35,7 +32,6 @@
 #include <sys/param.h>
 #include <esp_netif.h>
 #include <esp_eth.h>
-#include <protocol_examples_common.h>
 #include <esp_http_server.h>
 
 #include <cmath>
@@ -48,9 +44,12 @@
 #include "sdkconfig.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
-#include <hal/gpio_types.h>
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
+#include <freertos/event_groups.h>
+#include <freertos/portmacro.h>
+#include <freertos/task.h>
+#include "freertos/semphr.h"
 #include "HW_setup.h"
 #include "ConfigurationHandler.h"
 #include "BatteryMGM.h"
@@ -58,7 +57,7 @@
 #include "esp_now_stuff.h"
 #include "IsChangedSingletone.h"
 #include "DataStruct.h"
-#include <freertos/event_groups.h>
+
 
 using std::cout;
 using std::endl;
@@ -84,13 +83,14 @@ void initUART(void);
 static EventGroupHandle_t my_event_group;
 const int WS_BIT = BIT1;
 const int WIFI_BIT = BIT0;
+const int UART_BIT = BIT2;
 static uint8_t no_clients = 0;
 
 sDataStruct Data;
 static esp_err_t ws_handler(httpd_req_t *req);
 void WS_handlerTask(void *parameters);
 static void connect_handler(void *arg, esp_event_base_t event_base,int32_t event_id, void *event_data);
-httpd_uri_t s_ws = { .uri = "/ws", .method = HTTP_GET, .handler = ws_handler, .is_websocket = true };
+
 
 static std::string auth_mode_type(wifi_auth_mode_t auth_mode) {
 	std::string types[] = { "OPEN", "WEP", "WPA PSK", "WPA2 PSK",
@@ -158,16 +158,28 @@ static esp_err_t index_handler(httpd_req_t *req) {
 
 static httpd_handle_t start_webserver() {
 
-	cout << "Starting web server" << endl;
+	ESP_LOGI(TAG, "Starting web server");
 	httpd_handle_t lserver = NULL;
 	httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+	
 	if (httpd_start(&lserver, &config) == ESP_OK) {
+		
 		httpd_uri_t index_uri = { 
 			.uri = "/", 
-			.method = HTTP_GET, .handler = index_handler, 
+			.method = HTTP_GET, 
+			.handler = index_handler, 
 			.user_ctx = NULL,
 			.is_websocket = false  
 		};
+		
+		httpd_uri_t s_ws = { 
+			.uri = "/ws", 
+			.method = HTTP_GET, 
+			.handler = ws_handler,
+			.user_ctx = NULL, 
+			.is_websocket = true 
+		};
+		
 		httpd_register_uri_handler(lserver, &index_uri);
 
 		// Register the WebSocket handler
@@ -175,7 +187,7 @@ static httpd_handle_t start_webserver() {
 		return lserver;
 	}
 
-	ESP_LOGI(TAG, "Error starting server!");
+	ESP_LOGE(TAG, "Error starting server!");
 	return NULL;
 }
 
@@ -189,31 +201,27 @@ static void disconnect_handler(void *arg, esp_event_base_t event_base,
 	//httpd_handle_t *lserver = (httpd_handle_t*) arg;
 	if(no_clients != 0 ) no_clients--;
 	
-	
 	if (server != NULL  && no_clients == 0) {
-		ESP_LOGI(TAG, "Stopping webserver");
 		if (stop_webserver(server) == ESP_OK) {
 			// memory pointer to Nullptr
 			server = NULL;
-			cout << TAG << " Stopping webserver done ,,,(ovO),,,"<<endl;
 			xEventGroupClearBits(my_event_group, WIFI_BIT | WS_BIT);
-			cout << TAG << " Disconnection happened, Remaining Active Clients : " << static_cast<unsigned int>(no_clients) << " .d(ovO),,," << endl;
+			ESP_LOGI( TAG , " Disconnection happened, Remaining Active Clients : %d .d(ovO),,,", static_cast<unsigned int>(no_clients));
 		} else {
 			ESP_LOGE(TAG, "Failed to stop http server");
 		}
 	} else if( no_clients  > 0 ){ 
-		cout << TAG << " Disconnection happened, Remaining Active Clients : " << static_cast<unsigned int>(no_clients) << " .d(ovO),,," << endl;
+		ESP_LOGI( TAG , " Disconnection happened, Remaining Active Clients : %d .d(ovO),,,", static_cast<unsigned int>(no_clients));
 	}else{
-		cout << TAG << " Disconnect problem, server was NULL ,,,(ovO)B" << endl;
+		ESP_LOGE(TAG ," Disconnect problem, server was NULL ,,,(ovO)B" );
 	}
 	
 }
 
-static void wifi_event_handler(void *arg, esp_event_base_t event_base,
-		int32_t event_id, void *event_data) {
+static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
 	switch (event_id) {
 	case WIFI_EVENT_SCAN_DONE:
-		cout << " scan ..." << endl;
+		ESP_LOGI (TAG," scan ...");
 		scan_done_handler();
 		ESP_LOGI(TAG, "sta scan done");
 		break;
@@ -246,13 +254,10 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 	default:
 		break;
 	}
-	return;
-
 }
 
 
 static void initialize_wifi() {
-	
 	
 	ESP_ERROR_CHECK(esp_netif_init());
 	my_event_group = xEventGroupCreate();
@@ -267,7 +272,9 @@ static void initialize_wifi() {
 	ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
 	//ESP_ERROR_CHECK( esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &event_handler, NULL) );
 	//ESP_ERROR_CHECK( esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL) );
-
+	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, 		&connect_handler, 		&server));
+	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, 	&disconnect_handler, 	&server));
+	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_SCAN_DONE,			&wifi_event_handler, 	NULL));
 	
 	ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
 	ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_NULL) );
@@ -285,31 +292,18 @@ static void wifiInit() {
 
 	//esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
 	//assert(sta_netif);
-	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+//	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
 	wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-static void wifiInitAP() {
+static void wifiInitAPSTA() {
 	
-	
-	//esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
-	//assert(ap_netif);
-	//esp_netif_t *sta_netif =esp_netif_create_default_wifi_sta();
-	//assert(sta_netif);
-
-	//wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-
-	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, 		&connect_handler, 		&server));
-	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, 	&disconnect_handler, 	&server));
-	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_SCAN_DONE,			&wifi_event_handler, 	NULL));
-	/*ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-	 ESP_EVENT_ANY_ID,
-	 &wifi_event_handler,
-	 NULL,
-	 NULL));*/
+//	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, 		&connect_handler, 		&server));
+//	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, 	&disconnect_handler, 	&server));
+//	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_SCAN_DONE,			&wifi_event_handler, 	NULL));
 
 	wifi_config_t ap_config = { 
 		.ap = { 
@@ -339,7 +333,6 @@ static void wifiInitAP() {
 }
 
 static void connect_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-	cout << "Connect to RTC_MS" << endl;
 	//httpd_handle_t *lserver = (httpd_handle_t*) arg;
 	no_clients++;
 	if (server == NULL) {
@@ -347,7 +340,7 @@ static void connect_handler(void *arg, esp_event_base_t event_base, int32_t even
 		server = start_webserver();
 	}
 	xEventGroupSetBits(my_event_group, WIFI_BIT);
-	cout << TAG << " Connection happened, Active Clients : " << static_cast<unsigned int>(no_clients)  << " d(ovO)F,," << endl;
+	ESP_LOGI(TAG, " Connection happened, Active Clients : %d  d(ovO)F,,",static_cast<unsigned int>(no_clients));
 }
 
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
@@ -417,8 +410,7 @@ void init_spiffs() {
 	size_t total = 0, used = 0;
 	ret = esp_spiffs_info(NULL, &total, &used);
 	if (ret != ESP_OK) {
-		ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)",
-				esp_err_to_name(ret));
+		ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
 	} else {
 		ESP_LOGI(TAG, "SPIFFS partition size: total: %d, used: %d", total,
 				used);
@@ -442,11 +434,12 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 	/* Set max_len = 0 to get the frame len */
 	esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
 	if (ret != ESP_OK) {
-		ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d",
-				ret);
+		ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d", ret);
 		return ret;
 	}
+	
 	ESP_LOGI(TAG, "frame len is %d", ws_pkt.len);
+	
 	if (ws_pkt.len) {
 		/* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
 		buf = (uint8_t*) calloc(1, ws_pkt.len + 1);
@@ -455,6 +448,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 			return ESP_ERR_NO_MEM;
 		}
 		ws_pkt.payload = buf;
+		
 		/* Set max_len = ws_pkt.len to get the frame payload */
 		ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
 		if (ret != ESP_OK) {
@@ -463,6 +457,8 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 			return ret;
 		}
 	}
+	
+	
 	// If it was a PONG, update the keep-alive
 	if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
 		ESP_LOGD(TAG, "Received PONG message");
@@ -479,11 +475,8 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 			std::string *pStr = new std::string(ws_pkt.payload, ws_pkt.payload+ws_pkt.len);
 			// needs to copy to another structure....
 			
-			
-			
 			// full message hand over to the handler task, which is responsible for the handling.
 			xQueueSend(qWSCommand, &pStr, portTICK_PERIOD_MS);
-			
 			
 		} else if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
 			// Response PONG packet to peer
@@ -493,8 +486,8 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 			// Response CLOSE packet with no payload to peer
 			ws_pkt.len = 0;
 			ws_pkt.payload = NULL;
-			if(no_clients <= 1) 
-				xEventGroupClearBits(my_event_group, WS_BIT);
+			/*if(no_clients <= 1) 
+				xEventGroupClearBits(my_event_group, WS_BIT);*/
 
 		}
 		ret = httpd_ws_send_frame(req, &ws_pkt);
@@ -508,7 +501,8 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 		free(buf);
 		return ret;
 	}
-	free(buf);
+	if(buf != NULL)
+		free(buf);
 	return ESP_OK;
 }
 
@@ -546,7 +540,13 @@ esp_err_t wsSenderFnc(std::string msg) {
 
 /* Inside .cpp file, app_main function must be declared with C linkage */
 extern "C" void app_main(void) {
-    ESP_ERROR_CHECK( nvs_flash_init());
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
    
 	setHWInputs();
 	checkHWInputs();
@@ -567,7 +567,7 @@ extern "C" void app_main(void) {
 	Data.batteryVoltage = batt.getBatteryVoltage();
 	cout << "Battery Read " << Data.batteryVoltage << " [mV] " << endl;
 
-	esp_err_t ret;
+	//esp_err_t ret;
 	uint16_t year = 0;
 	uint8_t month = 0, date = 0, hour = 0, minute = 0, second = 0;
 	int qL = 0;
@@ -586,10 +586,13 @@ extern "C" void app_main(void) {
 	ret = i2c_master_init();
 	if (ret != ESP_OK)
 		cout << "i2c driver install failed" << endl;
-	RTCDriver *ooo = new RTCDriver("RTC", &i2c_mutex, &i2c_master_read_slave,
-			&i2c_master_write_slave);
+	RTCDriver *ooo = new RTCDriver("RTC", &i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
 	SavingInterfaceClass *rtcI = ooo;
 	configHandler.registerClass(rtcI);
+	
+	ConnectToESPNOW *espNow = new ConnectToESPNOW("ESPNOW");
+	SavingInterfaceClass *espNowI = &espNow;
+	configHandler.registerClass(espNowI);
 
 // config file read and process 
 	configHandler.LoadAllConfiguration();
@@ -606,21 +609,26 @@ extern "C" void app_main(void) {
 	Data.epoch = ooo->getEpochUTC();
 
 	// how to init Wifi --> depends on the reason of wake up
+	unsigned int _topicSize = CONFIG_TOPIC_SIZE;
+	
 
+	
 	//config button cause the wake up
 	if (Data.pins[0] == 1) {
-		unsigned int _topicSize = CONFIG_TOPIC_SIZE;
+		
 		qWSCommand =  xQueueCreate(_topicSize, sizeof(std::string *) );
-		wifiInitAP();
+		wifiInitAPSTA();
 		// wifi init after the esp init required to start
-		InitEspNowChannel();
+		//ESP_ERROR_CHECK(InitEspNowChannel());
+		ESP_ERROR_CHECK(espNow->Init());
 		//xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 6, (void *)(&configHandler), tskIDLE_PRIORITY, NULL);
 		xTaskCreate(WS_handlerTask, "WSReqhandler", 1024 * 6, NULL, tskIDLE_PRIORITY, NULL);
 	} else {
 		wifiInit();
-		ESP_ERROR_CHECK(InitEspNowChannel());
+		//ESP_ERROR_CHECK(InitEspNowChannel());
+		ESP_ERROR_CHECK(espNow->Init());
 	}
-	
+	//QueueHandle_t esp_now_queue = getCommandQueue();
 	
 
 	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
@@ -674,7 +682,7 @@ extern "C" void app_main(void) {
 				printf("GET Time Zone : %d \n", ooo->getTimeZone());
 			} else if (x.command[0] == 'W' && x.command[1] == 'S') {
 				//ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
-				ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
+				ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, false));
 			} else if (x.command[0] == 'G' && x.command[1] == 'N') {
 				//ESP_ERROR_CHECK(ooo->CheckDLS());
 				ESP_ERROR_CHECK(ooo->readHoursFromRTC(&hour));
@@ -835,6 +843,7 @@ void initUART(void) {
 		//vTaskDelete(NULL);
 	}
 	uart_param_config(UART_NUM_0, &uart_config);
+	xEventGroupSetBits(my_event_group, UART_BIT);
 }
 
 void WS_handlerTask(void *parameters) {
@@ -850,26 +859,108 @@ void WS_handlerTask(void *parameters) {
 		//If queue has more message
 		for (int i = 0; i < qLen; i++) {
 			xQueueReceive(qWSCommand, &ws_msg, portMAX_DELAY);
-			// TODO here add logic	
-			cout << "WS fun message : [" << *ws_msg << "]" << endl;						
+			// TODO here add logic			
 			cJSON *root = cJSON_Parse((*ws_msg).c_str());
-			if(root != NULL) {
+			/*			if(root != NULL) {
 				cJSON * command = cJSON_GetObjectItem(root, "epoch");
 				if(command != NULL) {
-					long iepoch = cJSON_GetObjectItem(root,"epoch")->valueint;
-					cout << "Epoch :["<< iepoch <<"]"<<endl;
+					long iepoch = cJSON_GetObjectItem(root,"epoch")->valueint;					
 					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
 					((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
 					((RTCDriver *) RTC)->ForcedDLSUpdate();
 				}
+				command = cJSON_GetObjectItem(root,"setTimeZone");
+				if(command != NULL) {
+					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
+					((RTCDriver *) RTC)->setTimeZone(cJSON_GetObjectItem(root,"setTimeZone")->valueint, true);
+				}
+				*/
+				
+				if(root!=NULL) {
+					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
+					SavingInterfaceClass * ESPNOW = config->getClassPointer("ESPNOW");
+					cJSON * command = cJSON_GetObjectItem(root, "CMD");
+					switch(command->valuestring) {
+						case "Load":
+							
+							cJSON *respJSON;
+							respJSON = cJSON_CreateObject();
+							cJSON *rtcJSON;
+							rtcJSON = cJSON_CreateObject();
+							cJSON_AddNumberToObject(rtcJSON, "Epoch", ((RTCDriver *) RTC)->getEpoch());
+							cJSON_AddNumberToObject(rtcJSON, "TimeZone",((RTCDriver *) RTC)->getTimeZone() );
+							cJSON_AddStringToObject(rtcJSON, "MeshName",((RTCDriver *) ESPNOW)->getMeshName()).c_str() );
+							
+							
+							
+							cJSON_AddItemToObject(respJSON, "RTC", rtcJSON);
+						
+						
+							
+							// TODO ADD More Node
+							
+							wsSenderFnc(cJSON_Print(respJSON));
+							cJSON_Delete(respJSON);
+							
+						case "setEpoch":
+							long iepoch = cJSON_GetObjectItem(root,"unit")->valueint;												
+							((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
+							((RTCDriver *) RTC)->ForcedDLSUpdate();
+							break;
+						case "setTimeZone":
+							((RTCDriver *) RTC)->setTimeZone(cJSON_GetObjectItem(root,"unit")->valueint, true);
+							break;
+						case "getTimeZone":
+							cJSON *respJSON;
+							respJSON = cJSON_CreateObject();							
+							cJSON_AddNumberToObject(respJSON, "TimeZone",((RTCDriver *) RTC)->getTimeZone() );
+							wsSenderFnc(cJSON_Print(respJSON));
+							cJSON_Delete(respJSON);
+							break;
+						case "getMeshName":
+							cJSON *respJSON;
+							respJSON = cJSON_CreateObject();							
+							cJSON_AddStringToObject(respJSON, "MeshName",((ConnectToESPNOW *) ESPNOW)->getMeshName()).c_str() );
+							wsSenderFnc(cJSON_Print(respJSON));
+							cJSON_Delete(respJSON);							
+							break;
+						case "setMeshName":
+							std::string meshName = cJSON_GetObjectItem(root,"MeshName")->valuestring;
+							((ConnectToESPNOW *) ESPNOW)->setMeshName(meshName);
+							break;
+						case "scan":
+							break;
+						case "setRelayNodes":
+							break;
+						case "getRelayNodes":
+							break;
+						case "getSupportedBatteryList":
+							  // support html for the supported Battery types --> no hardcoded required
+							  
+							break;
+						case "getBatteryType":
+							break;
+						case "setBatteryType":
+							break;
+						
+							
+									
+						
+						
+						
+					}
+					
+				
 				cJSON_Delete(root);
+				}
 			}else{
-				cout << "Parse error : [" << *ws_msg << "]" << endl;			
+				ESP_LOGI(TAG, "Parse error : [%s]", (*ws_msg).c_str());			
 			}
-			free(ws_msg);
+			if(ws_msg != NULL)
+				free(ws_msg);
 			ws_msg = NULL;		
 		}
-		vTaskDelay(10 / portTICK_PERIOD_MS);
+		vTaskDelay(5 / portTICK_PERIOD_MS);
 	}
 	vTaskDelete(NULL);
 		 
