@@ -11,25 +11,27 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
-const char* BatteryTypeToString(BatteryType b) {
+const char* BatteryTypeToString(MyEnum::BatteryType b) {
 	switch(b) {
-	case Lithium: return "Lithium";
-	case Lifepo4: return "Lifepo4";
-	case AAx3: 	  return "AAx3";
+	case MyEnum::Lithium: return "Lithium";
+	case MyEnum::Lifepo4: return "Lifepo4";
+	case MyEnum::AAx3: 	  return "AAx3";
 	default: throw std::out_of_range("The BatteryType enumerator used with unknow value");
 	}
 }
 
-std::ostream& operator<<(std::ostream& os, BatteryType e)
+std::ostream& operator<<(std::ostream& os, MyEnum::BatteryType e)
 {
 	switch(e) {
-	case Lithium : os << "Lithium";    	break;
-	case Lifepo4 : os << "Lifepo4";    	break;
-	case AAx3   : os << "AAx3";       break;
+	case MyEnum::Lithium : os << "Lithium";    	break;
+	case MyEnum::Lifepo4 : os << "Lifepo4";    	break;
+	case MyEnum::AAx3   : os << "AAx3";       break;
 	default	   : throw std::out_of_range("The BatteryType enumerator used with unknow value");
 	}
 	return os;
 }
+
+
 
 
 
@@ -60,7 +62,7 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 
 	upperLimit = 4200;
 	lowerLimit = 0;
-	batt = BatteryType::Lithium;
+	batt = MyEnum::BatteryType::Lithium;
 
 }
 
@@ -92,6 +94,39 @@ int BatteryMGM::getBatteryVoltage() {
 	float batteryVoltage = ((float)v / 4095.0) * 5.7 * 1100.0;
 	return (int)(batteryVoltage);
 }
+
+list<std::string> BatteryMGM::getSupportedBatteries() {
+	 list<std::string> retList;
+	 for ( const auto e : MyEnum::All ) {
+	 	retList.push_back(e);
+	 }
+	 
+	 return retList;	 
+}
+
+
+std::string BatteryMGM::getBatteryType()
+{
+	return BatteryTypeToString(batt);
+}
+
+void BatteryMGM::setBatteryType(std::string batteryName) {
+	std::map<std::string, MyEnum::BatteryType> ::iterator it;
+	it = BatteryTypeEnumMap.find(batteryName);
+	
+	if (it == BatteryTypeEnumMap.end())
+	{
+		// error handling 
+		return;
+	}
+	if(this->batt != it->second){
+		this->setToChanged();
+		this->batt = it->second;
+	}
+	return;
+}
+
+
 
 
 void BatteryMGM::Load(cJSON * p_json) {

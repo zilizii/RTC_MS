@@ -107,6 +107,7 @@ class ConnectToESPNOW : public SavingInterfaceClass{
 		esp_err_t Init(void);
 		QueueHandle_t getEspNowQueue(void);
 		std::string getMeshName();
+		void setMeshName(std::string);
 		cJSON* Save();
 		void Load(cJSON*);
 		bool Configured(void);

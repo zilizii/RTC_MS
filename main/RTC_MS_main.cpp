@@ -91,6 +91,20 @@ static esp_err_t ws_handler(httpd_req_t *req);
 void WS_handlerTask(void *parameters);
 static void connect_handler(void *arg, esp_event_base_t event_base,int32_t event_id, void *event_data);
 
+/*constexpr uint32_t hashFnc(const char* data, size_t const size) noexcept{
+    uint32_t hash = 5381;
+
+    for(const char *c = data; c < data + size; ++c)
+        hash = ((hash << 5) + hash) + (unsigned char) *c;
+
+    return hash;
+}*/
+
+constexpr unsigned int hashFnc(const char* str, int h = 0)
+{
+    return !str[h] ? 5381 : (hashFnc(str, h+1) * 33) ^ str[h];
+}
+
 
 static std::string auth_mode_type(wifi_auth_mode_t auth_mode) {
 	std::string types[] = { "OPEN", "WEP", "WPA PSK", "WPA2 PSK",
@@ -590,8 +604,8 @@ extern "C" void app_main(void) {
 	SavingInterfaceClass *rtcI = ooo;
 	configHandler.registerClass(rtcI);
 	
-	ConnectToESPNOW *espNow = new ConnectToESPNOW("ESPNOW");
-	SavingInterfaceClass *espNowI = &espNow;
+	ConnectToESPNOW * espNow = new ConnectToESPNOW("ESPNOW");
+	SavingInterfaceClass *espNowI = espNow;
 	configHandler.registerClass(espNowI);
 
 // config file read and process 
@@ -877,19 +891,27 @@ void WS_handlerTask(void *parameters) {
 				*/
 				
 				if(root!=NULL) {
+					
+					/*pointers to the classes*/
+					
 					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
 					SavingInterfaceClass * ESPNOW = config->getClassPointer("ESPNOW");
+					SavingInterfaceClass * BttryMGM = config->getClassPointer("BatteryManager");
+					
+					//Json handling
 					cJSON * command = cJSON_GetObjectItem(root, "CMD");
-					switch(command->valuestring) {
-						case "Load":
+					
+					
+					switch(hashFnc(command->valuestring)) {
+						case hashFnc("Load"):
 							
 							cJSON *respJSON;
 							respJSON = cJSON_CreateObject();
 							cJSON *rtcJSON;
 							rtcJSON = cJSON_CreateObject();
-							cJSON_AddNumberToObject(rtcJSON, "Epoch", ((RTCDriver *) RTC)->getEpoch());
-							cJSON_AddNumberToObject(rtcJSON, "TimeZone",((RTCDriver *) RTC)->getTimeZone() );
-							cJSON_AddStringToObject(rtcJSON, "MeshName",((RTCDriver *) ESPNOW)->getMeshName()).c_str() );
+							cJSON_AddNumberToObject(rtcJSON, "Epoch"   ,((RTCDriver		  *)    RTC)->getEpoch()    );
+							cJSON_AddNumberToObject(rtcJSON, "TimeZone",((RTCDriver 	  *)    RTC)->getTimeZone() );
+							cJSON_AddStringToObject(rtcJSON, "MeshName",(((ConnectToESPNOW *) ESPNOW)->getMeshName()).c_str() );
 							
 							
 							
@@ -901,58 +923,54 @@ void WS_handlerTask(void *parameters) {
 							
 							wsSenderFnc(cJSON_Print(respJSON));
 							cJSON_Delete(respJSON);
-							
-						case "setEpoch":
+							break;
+						case hashFnc("setEpoch"):
 							long iepoch = cJSON_GetObjectItem(root,"unit")->valueint;												
 							((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
 							((RTCDriver *) RTC)->ForcedDLSUpdate();
 							break;
-						case "setTimeZone":
+						case hashFnc("setTimeZone"):
 							((RTCDriver *) RTC)->setTimeZone(cJSON_GetObjectItem(root,"unit")->valueint, true);
 							break;
-						case "getTimeZone":
+						case hashFnc("getTimeZone"):
 							cJSON *respJSON;
 							respJSON = cJSON_CreateObject();							
 							cJSON_AddNumberToObject(respJSON, "TimeZone",((RTCDriver *) RTC)->getTimeZone() );
 							wsSenderFnc(cJSON_Print(respJSON));
 							cJSON_Delete(respJSON);
 							break;
-						case "getMeshName":
+						case hashFnc("getMeshName"):
 							cJSON *respJSON;
 							respJSON = cJSON_CreateObject();							
-							cJSON_AddStringToObject(respJSON, "MeshName",((ConnectToESPNOW *) ESPNOW)->getMeshName()).c_str() );
+							cJSON_AddStringToObject(respJSON, " MeshName",(((ConnectToESPNOW *) ESPNOW)->getMeshName()).c_str());
 							wsSenderFnc(cJSON_Print(respJSON));
 							cJSON_Delete(respJSON);							
 							break;
-						case "setMeshName":
-							std::string meshName = cJSON_GetObjectItem(root,"MeshName")->valuestring;
-							((ConnectToESPNOW *) ESPNOW)->setMeshName(meshName);
+						case hashFnc("setMeshName"):
+							std::string l_meshName = cJSON_GetObjectItem(root,"MeshName")->valuestring;
+							((ConnectToESPNOW *) ESPNOW)->setMeshName(l_meshName);
 							break;
-						case "scan":
+						case hashFnc("scan"):
 							break;
-						case "setRelayNodes":
+						case hashFnc("setRelayNodes"):
 							break;
-						case "getRelayNodes":
+						case hashFnc("getRelayNodes"):
 							break;
-						case "getSupportedBatteryList":
+						case hashFnc("getSupportedBatteryList"):
 							  // support html for the supported Battery types --> no hardcoded required
-							  
+							  list<std::string>  hellNO =  ((BatteryMGM *)BttryMGM)->getSupportedBatteries();
 							break;
-						case "getBatteryType":
+						case hashFnc("getBatteryType"):
 							break;
-						case "setBatteryType":
+						case hashFnc("setBatteryType"):
 							break;
 						
-							
-									
-						
-						
-						
-					}
 					
 				
+				
+				} // end of switch
+				
 				cJSON_Delete(root);
-				}
 			}else{
 				ESP_LOGI(TAG, "Parse error : [%s]", (*ws_msg).c_str());			
 			}

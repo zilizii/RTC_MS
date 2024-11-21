@@ -122,9 +122,8 @@ std::string ConnectToESPNOW::getMeshName(){
 void ConnectToESPNOW::setMeshName(std::string meshName) {
 	if(this->_MeshName != meshName){
 		this->setToChanged();
+		this->_MeshName = meshName;
 	}
-	
-	this->_MeshName = meshName;
 	return;
 }
 
