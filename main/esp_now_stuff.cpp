@@ -100,7 +100,7 @@ cJSON* ConnectToESPNOW::Save() {
 	cJSON * RTCObject;
 	RTCObject = cJSON_CreateObject();
 	cJSON_AddItemToObject (RTCObject, "isConfigured", cJSON_CreateBool(_isConfigured) );
-	cJSON_AddStringToObject (RTCObject, "MeshName", _MeshName);	
+	cJSON_AddStringToObject (RTCObject, "MeshName", _MeshName.c_str());	
 
 	return RTCObject;
 }

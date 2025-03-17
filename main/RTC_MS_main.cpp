@@ -903,7 +903,7 @@ void WS_handlerTask(void *parameters) {
 					
 					
 					switch(hashFnc(command->valuestring)) {
-						case hashFnc("Load"):
+						case hashFnc("Load"): {
 							
 							cJSON *respJSON;
 							respJSON = cJSON_CreateObject();
@@ -924,42 +924,48 @@ void WS_handlerTask(void *parameters) {
 							wsSenderFnc(cJSON_Print(respJSON));
 							cJSON_Delete(respJSON);
 							break;
-						case hashFnc("setEpoch"):
+							}
+						case hashFnc("setEpoch"): {
 							long iepoch = cJSON_GetObjectItem(root,"unit")->valueint;												
 							((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
 							((RTCDriver *) RTC)->ForcedDLSUpdate();
 							break;
+							}
 						case hashFnc("setTimeZone"):
 							((RTCDriver *) RTC)->setTimeZone(cJSON_GetObjectItem(root,"unit")->valueint, true);
 							break;
-						case hashFnc("getTimeZone"):
+						case hashFnc("getTimeZone"): {
 							cJSON *respJSON;
 							respJSON = cJSON_CreateObject();							
 							cJSON_AddNumberToObject(respJSON, "TimeZone",((RTCDriver *) RTC)->getTimeZone() );
 							wsSenderFnc(cJSON_Print(respJSON));
 							cJSON_Delete(respJSON);
 							break;
-						case hashFnc("getMeshName"):
+							}
+						case hashFnc("getMeshName"): {
 							cJSON *respJSON;
 							respJSON = cJSON_CreateObject();							
 							cJSON_AddStringToObject(respJSON, " MeshName",(((ConnectToESPNOW *) ESPNOW)->getMeshName()).c_str());
 							wsSenderFnc(cJSON_Print(respJSON));
 							cJSON_Delete(respJSON);							
 							break;
-						case hashFnc("setMeshName"):
+							}
+						case hashFnc("setMeshName"): {
 							std::string l_meshName = cJSON_GetObjectItem(root,"MeshName")->valuestring;
 							((ConnectToESPNOW *) ESPNOW)->setMeshName(l_meshName);
 							break;
+							}
 						case hashFnc("scan"):
 							break;
 						case hashFnc("setRelayNodes"):
 							break;
 						case hashFnc("getRelayNodes"):
 							break;
-						case hashFnc("getSupportedBatteryList"):
+						case hashFnc("getSupportedBatteryList"):{
 							  // support html for the supported Battery types --> no hardcoded required
 							  list<std::string>  hellNO =  ((BatteryMGM *)BttryMGM)->getSupportedBatteries();
 							break;
+							}
 						case hashFnc("getBatteryType"):
 							break;
 						case hashFnc("setBatteryType"):

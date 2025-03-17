@@ -98,9 +98,8 @@ int BatteryMGM::getBatteryVoltage() {
 list<std::string> BatteryMGM::getSupportedBatteries() {
 	 list<std::string> retList;
 	 for ( const auto e : MyEnum::All ) {
-	 	retList.push_back(e);
+	 	retList.push_back(BatteryTypeToString(e));
 	 }
-	 
 	 return retList;	 
 }
 
