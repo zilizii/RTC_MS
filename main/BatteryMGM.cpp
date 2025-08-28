@@ -11,7 +11,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
-const char* BatteryTypeToString(MyEnum::BatteryType b) {
+const char* BatteryTypeToString(const MyEnum::BatteryType b) {
 	switch(b) {
 	case MyEnum::Lithium: return "Lithium";
 	case MyEnum::Lifepo4: return "Lifepo4";
@@ -20,7 +20,7 @@ const char* BatteryTypeToString(MyEnum::BatteryType b) {
 	}
 }
 
-std::ostream& operator<<(std::ostream& os, MyEnum::BatteryType e)
+std::ostream& operator<<(std::ostream& os, const MyEnum::BatteryType e)
 {
 	switch(e) {
 	case MyEnum::Lithium : os << "Lithium";    	break;
@@ -109,7 +109,7 @@ std::string BatteryMGM::getBatteryType()
 	return BatteryTypeToString(batt);
 }
 
-void BatteryMGM::setBatteryType(std::string batteryName) {
+void BatteryMGM::setBatteryType(const std::string batteryName) {
 	std::map<std::string, MyEnum::BatteryType> ::iterator it;
 	it = BatteryTypeEnumMap.find(batteryName);
 	

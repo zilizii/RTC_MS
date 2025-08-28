@@ -18,5 +18,6 @@ IsChangedSingletone* IsChangedSingletone::GetInstance() {
 }
 IsChangedSingletone::~IsChangedSingletone() {
 	// TODO Auto-generated destructor stub
+	delete instancePtr;
 }
 

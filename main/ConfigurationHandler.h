@@ -13,6 +13,7 @@
 #include <cJSON.h>
 #include <SavingInterfaceClass.h>
 #include "IsChangedSingletone.h"
+#include <string_view>
 
 class ConfigurationHandler {
 private:
@@ -29,7 +30,8 @@ public:
 	void SaveAllConfiguration();
 	void ForcedSave();
 	
-	SavingInterfaceClass * getClassPointer(std::string name); 
+	//SavingInterfaceClass * getClassPointer(std::string name); 
+	SavingInterfaceClass * getClassPointer(std::string_view name);
 };
 
 #endif /* MAIN_CONFIGURATIONHANDLER_H_ */
