@@ -18,7 +18,10 @@
 #include <cstdio>
 #include <sys/_stdint.h>
 #include <stdio.h>
+#include "sdkconfig.h"
 #include "SavingInterfaceClass.h"
+#include "DataStruct.h"
+
 #include <list>
 
 #define ESP_NOW_QUEUE_SIZE           6
@@ -81,6 +84,10 @@ typedef struct {
     uint8_t dest_mac[ESP_NOW_ETH_ALEN];   //MAC address of destination device.
 } esp_now_send_param_t;
 
+
+ 
+
+
 void esp_now_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status);
 void esp_now_recv_cb(const esp_now_recv_info_t * esp_now_info, const uint8_t *data, int data_len);
 esp_err_t InitEspNowChannel(void);
@@ -92,10 +99,18 @@ class ConnectToESPNOW : public SavingInterfaceClass{
 	private:
 		std::list< uint8_t[ESP_NOW_ETH_ALEN]> _llClientMacs;
 		bool _isConfigured;
+		bool _isInitalized;
+		QueueHandle_t esp_now_queue;
+		string _MeshName;
 	public:
 		ConnectToESPNOW(std::string name);
+		esp_err_t Init(void);
+		QueueHandle_t getEspNowQueue(void);
+		std::string getMeshName();
+		void setMeshName(std::string);
 		cJSON* Save();
 		void Load(cJSON*);
+		bool Configured(void);
 	
 };
 

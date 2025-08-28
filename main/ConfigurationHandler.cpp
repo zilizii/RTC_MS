@@ -84,7 +84,7 @@ void ConfigurationHandler::ForcedSave() {
 }
 
 
-SavingInterfaceClass * ConfigurationHandler::getClassPointer(std::string name) {
+SavingInterfaceClass * ConfigurationHandler::getClassPointer(std::string_view name) {
 	if (_ll.empty() == true) {
 		return NULL;
 	}
