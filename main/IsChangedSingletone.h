@@ -21,6 +21,8 @@ public:
     void setToChanged() {isChanged = true;}
     bool getIsChanged() {return isChanged;}
 	virtual ~IsChangedSingletone();
+	void init();
+	void shutDown();
 
 };
 

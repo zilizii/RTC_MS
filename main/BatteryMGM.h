@@ -42,7 +42,7 @@ static const BatteryType All[] = { Lithium, Lifepo4, AAx3 };
 }
 
 const char* BatteryTypeToString(MyEnum::BatteryType b);
-std::ostream& operator<<(std::ostream &os, MyEnum::BatteryType e);
+std::ostream& operator<<(std::ostream &os, MyEnum::BatteryType &e);
 
 static std::map<std::string, MyEnum::BatteryType> BatteryTypeEnumMap = { { "Lithium",
 		MyEnum::BatteryType::Lithium }, { "Lifepo4", MyEnum::BatteryType::Lifepo4 }, { "AAx3",

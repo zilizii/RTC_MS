@@ -20,7 +20,7 @@ const char* BatteryTypeToString(const MyEnum::BatteryType b) {
 	}
 }
 
-std::ostream& operator<<(std::ostream& os, const MyEnum::BatteryType e)
+std::ostream& operator<<(std::ostream& os, const MyEnum::BatteryType& e)
 {
 	switch(e) {
 	case MyEnum::Lithium : os << "Lithium";    	break;
@@ -106,7 +106,7 @@ list<std::string> BatteryMGM::getSupportedBatteries() {
 
 std::string BatteryMGM::getBatteryType()
 {
-	return BatteryTypeToString(batt);
+	return BatteryTypeToString(this->batt);
 }
 
 void BatteryMGM::setBatteryType(const std::string batteryName) {
