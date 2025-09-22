@@ -566,7 +566,7 @@ extern "C" void app_main(void) {
 	checkHWInputs();
 	initialize_wifi();
 	init_spiffs();
-	IsChangedSingletone::GetInstance()->init();
+	General::IsChangedSingletone::GetInstance()->init();
 
 	setenv("HU", "Europe/Budapest", 1);
 	tzset();
@@ -790,7 +790,7 @@ extern "C" void app_main(void) {
 				cout << "Start checking the oscilloscope pls..." << endl;
 			} else if (x.command[0] == 'Q' && x.command[1] == 'T') {
 				configHandler.SaveAllConfiguration();
-				IsChangedSingletone::GetInstance()->shutDown();
+				General::IsChangedSingletone::GetInstance()->shutDown();
 				esp_now_deinit();
 				esp_wifi_stop();
 				i2c_master_deinit();
@@ -825,7 +825,7 @@ extern "C" void app_main(void) {
 
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
-	IsChangedSingletone::GetInstance()->shutDown();
+	General::IsChangedSingletone::GetInstance()->shutDown();
 	cout << "app_main done" << endl;
 	esp_vfs_spiffs_unregister(NULL);
 }

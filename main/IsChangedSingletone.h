@@ -8,6 +8,8 @@
 #ifndef MAIN_ISCHANGEDSINGLETONE_H_
 #define MAIN_ISCHANGEDSINGLETONE_H_
 
+namespace General {
+
 class IsChangedSingletone {
 private:
 	bool isChanged;
@@ -25,5 +27,6 @@ public:
 	void shutDown();
 
 };
+}
 
 #endif /* MAIN_ISCHANGEDSINGLETONE_H_ */

@@ -7,6 +7,7 @@
 
 #include "IsChangedSingletone.h"
 #include <cassert>
+using namespace General;
 
 //initialization of the Singleton class pointer - because of static member should initialize in the source file
 IsChangedSingletone * IsChangedSingletone::instancePtr = nullptr;
@@ -27,7 +28,6 @@ IsChangedSingletone::~IsChangedSingletone() {
 
 void IsChangedSingletone::init() {
 	instancePtr = new IsChangedSingletone();
-	instancePtr->isChanged = false;
 }
 
 void IsChangedSingletone::shutDown() {
