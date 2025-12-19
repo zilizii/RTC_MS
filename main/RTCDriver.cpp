@@ -21,7 +21,9 @@ std::ostream& operator<<(std::ostream& os, eTimeClockFreq e)
 	return os;
 }
 
-RTCDriver::RTCDriver(std::string name,SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) : SavingInterfaceClass(name) {
+RTCDriver::RTCDriver(ConfigurationHandler* ch, std::string name,SemaphoreHandle_t *Smpf, fncPntr preadI2CFnc, fncPntr pwriteI2CFnc) : SavingInterfaceClass(name) {
+	this->configHandler = ch;
+	configHandler->registerClass(static_cast<SavingInterfaceClass*>(this));
 	this->smph = Smpf;
 	this->_fp_readi2c = preadI2CFnc;
 	this->_fp_writei2c = pwriteI2CFnc;
@@ -364,6 +366,7 @@ esp_err_t RTCDriver::printAllRegs(bool updateRequired) {
 }
 
 RTCDriver::~RTCDriver() {
+	this->configHandler->removeClass(this);
 	vQueueDelete(queueCommand);
 }
 

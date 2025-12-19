@@ -7,5 +7,9 @@
 	"RTC":	{
 		"TimeZone":	1,
 		"DayLightSave":	1
+	},
+	"ESPNOW":	{
+		"isConfigured":	0,
+		"MeshName":	"NA"
 	}
 }

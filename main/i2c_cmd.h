@@ -40,6 +40,7 @@ extern "C" {
 
 
 esp_err_t i2c_master_init(void);
+esp_err_t i2c_master_deinit(void);
 esp_err_t i2c_master_read_slave(i2c_port_t i2c_num, uint8_t Address, uint8_t Offset, uint8_t *data_rd, size_t size);
 esp_err_t i2c_master_write_slave(i2c_port_t i2c_num , uint8_t Address, uint8_t Offset ,uint8_t *data_w, size_t size);
 

@@ -25,11 +25,11 @@ class SavingInterfaceClass {
 private:
 	std::string _name;
 	//bool _isChanged;
-	IsChangedSingletone *instance;
+	General::IsChangedSingletone *instance;
 public:
 	SavingInterfaceClass(std::string name) :
 			_name(name) {
-		this->instance = IsChangedSingletone::GetInstance();
+		this->instance = General::IsChangedSingletone::GetInstance();
 	}
 	virtual ~SavingInterfaceClass();
 	std::string GetClassFriendlyName(void) {
