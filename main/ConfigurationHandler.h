@@ -9,23 +9,25 @@
 #define MAIN_CONFIGURATIONHANDLER_H_
 #include <algorithm>
 #include <iostream>
+//#include <forward_list>
 #include <list>
+#include <string>
 #include <cJSON.h>
 #include <SavingInterfaceClass.h>
 #include "IsChangedSingletone.h"
 #include <string_view>
+#include <esp_err.h>
+#include <esp_log.h>
 
 class ConfigurationHandler {
 private:
 	std::string _path;
 	std::list<SavingInterfaceClass*> _ll;
 public:
-	ConfigurationHandler(std::string path) :
-			_path(path) {
-	}
-	;
+	ConfigurationHandler(std::string path) : _path(path) {};
 	virtual ~ConfigurationHandler();
 	void registerClass(SavingInterfaceClass*);
+	void removeClass(SavingInterfaceClass*);
 	void LoadAllConfiguration();
 	void SaveAllConfiguration();
 	void ForcedSave();

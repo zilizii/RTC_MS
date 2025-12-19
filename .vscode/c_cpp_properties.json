@@ -1,0 +1,32 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/main",
+        "${workspaceFolder}/components/**",
+        "${workspaceFolder}/build/config",
+        "${workspaceFolder}/build/esp-idf/**",
+        "${workspaceFolder}/esp-idf/**",
+        "${env:IDF_PATH}/components/**"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/bin/clang",
+      "cStandard": "c11",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "linux-clang-x64",
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+      "browse": {
+        "path": [
+          "${workspaceFolder}",
+          "${workspaceFolder}/main",
+          "${workspaceFolder}/components",
+          "${env:IDF_PATH}/components"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ],
+  "version": 4
+}

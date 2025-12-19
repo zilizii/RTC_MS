@@ -32,6 +32,8 @@
 //#include "esp_adc/adc_cali.h"
 //#include "esp_adc/adc_cali_scheme.h"
 #include "esp_system.h"
+#include "ConfigurationHandler.h"
+#include "cJSON.h"
 
 namespace MyEnum {
 enum BatteryType {
@@ -42,7 +44,7 @@ static const BatteryType All[] = { Lithium, Lifepo4, AAx3 };
 }
 
 const char* BatteryTypeToString(MyEnum::BatteryType b);
-std::ostream& operator<<(std::ostream &os, MyEnum::BatteryType e);
+std::ostream& operator<<(std::ostream &os, MyEnum::BatteryType &e);
 
 static std::map<std::string, MyEnum::BatteryType> BatteryTypeEnumMap = { { "Lithium",
 		MyEnum::BatteryType::Lithium }, { "Lifepo4", MyEnum::BatteryType::Lifepo4 }, { "AAx3",
@@ -54,8 +56,9 @@ private:
 	uint16_t lowerLimit;
 	MyEnum::BatteryType batt;
 	adc_oneshot_unit_handle_t adc_handle;
+	ConfigurationHandler * configHandler;
 public:
-	BatteryMGM(std::string name);
+	BatteryMGM(ConfigurationHandler* cf, std::string name);
 	virtual ~BatteryMGM();
 	int readADC();
 	int getBatteryVoltage();

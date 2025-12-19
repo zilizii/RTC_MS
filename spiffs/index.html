@@ -63,7 +63,8 @@ To ensure to connect to the right Relay station.<br/>
 	  const localEpoch = secondsSinceEpoch();
           document.getElementById("epoch").innerHTML = localEpoch;
 	var myJSON = {
-	  "epoch": localEpoch
+      "CMD": "epoch",
+	   "epoch": localEpoch
 	};
 	socket.send(JSON.stringify(myJSON));
       }
@@ -80,7 +81,7 @@ To ensure to connect to the right Relay station.<br/>
           	}          	
           }
           var myJSON = {
-	  "WifiScan": null
+	   "CMD": "WifiScan"
 	  };
 	  socket.send(JSON.stringify(myJSON));
       }

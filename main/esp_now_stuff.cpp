@@ -68,12 +68,19 @@ esp_err_t InitEspNowChannel(void) {
 }
 
 
-ConnectToESPNOW::ConnectToESPNOW(std::string name) : SavingInterfaceClass(name) {
+ConnectToESPNOW::ConnectToESPNOW(ConfigurationHandler* ch, std::string name) : SavingInterfaceClass(name) {
+	this->configHandler = ch;
+	configHandler->registerClass(static_cast<SavingInterfaceClass*>(this));
 	unsigned int _topicSize = CONFIG_TOPIC_SIZE;
 	_isConfigured = false;
 	_isInitalized = false;
 	_llClientMacs.clear();
 	 esp_now_queue = xQueueCreate(_topicSize, sizeof(sDataStruct) );;
+}
+
+ConnectToESPNOW::~ConnectToESPNOW()
+{
+	this->configHandler->removeClass(this);
 }
 
 QueueHandle_t ConnectToESPNOW::getEspNowQueue(void) {
@@ -83,7 +90,13 @@ QueueHandle_t ConnectToESPNOW::getEspNowQueue(void) {
 void ConnectToESPNOW::Load(cJSON * p_json) {
 	
 	cJSON *isConfJSON = cJSON_GetObjectItem(p_json, "isConfigured");
-	_MeshName = cJSON_GetObjectItem(p_json,"MeshName")->valuestring;
+	cJSON *meshNameItem = cJSON_GetObjectItem(p_json, "MeshName");
+	if (meshNameItem && meshNameItem->valuestring) {
+		_MeshName = meshNameItem->valuestring;
+	} else {
+		_MeshName = "";
+	}
+	            
 	
 	
 	if(cJSON_IsTrue(isConfJSON) == 0) {

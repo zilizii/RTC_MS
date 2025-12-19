@@ -20,7 +20,7 @@ const char* BatteryTypeToString(const MyEnum::BatteryType b) {
 	}
 }
 
-std::ostream& operator<<(std::ostream& os, const MyEnum::BatteryType e)
+std::ostream& operator<<(std::ostream& os, const MyEnum::BatteryType& e)
 {
 	switch(e) {
 	case MyEnum::Lithium : os << "Lithium";    	break;
@@ -35,9 +35,12 @@ std::ostream& operator<<(std::ostream& os, const MyEnum::BatteryType e)
 
 
 
-BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
+BatteryMGM::BatteryMGM( ConfigurationHandler* cf, std::string name) :SavingInterfaceClass(name) {
 
 	esp_err_t r;
+	//RAII
+	this->configHandler = cf;
+	configHandler->registerClass(static_cast<SavingInterfaceClass*>(this));
 
 #if (BATTERY_ADC_NUM == 1)
 	adc_oneshot_unit_init_cfg_t init_config = {
@@ -68,6 +71,8 @@ BatteryMGM::BatteryMGM(std::string name) :SavingInterfaceClass(name) {
 
 BatteryMGM::~BatteryMGM() {
 	ESP_ERROR_CHECK(adc_oneshot_del_unit(adc_handle));
+	//supporting the RAII concept
+	this->configHandler->removeClass(this);
 }
 
 int BatteryMGM::readADC(void) {
@@ -106,7 +111,7 @@ list<std::string> BatteryMGM::getSupportedBatteries() {
 
 std::string BatteryMGM::getBatteryType()
 {
-	return BatteryTypeToString(batt);
+	return BatteryTypeToString(this->batt);
 }
 
 void BatteryMGM::setBatteryType(const std::string batteryName) {

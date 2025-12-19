@@ -400,7 +400,7 @@ void setHWInputs() {
 void init_spiffs() {
 
 	esp_vfs_spiffs_conf_t config = { .base_path = "/spiffs", .partition_label =
-	NULL, .max_files = 5, .format_if_mount_failed = true, };
+	"storage", .max_files = 5, .format_if_mount_failed = true, };
 	esp_err_t ret = esp_vfs_spiffs_register(&config);
 
 	switch (ret) {
@@ -566,19 +566,20 @@ extern "C" void app_main(void) {
 	checkHWInputs();
 	initialize_wifi();
 	init_spiffs();
+	General::IsChangedSingletone::init();
+	//General::IsChangedSingletone::GetInstance()->init();
 
 	setenv("HU", "Europe/Budapest", 1);
 	tzset();
 	//ConfigurationHandler configHandler(CONFIG_PATH);
 	
 
-	BatteryMGM batt("BatteryManager");
-	SavingInterfaceClass *battI = &batt;
-	configHandler.registerClass(battI);
+	BatteryMGM *batt = new BatteryMGM(&configHandler,"BatteryManager");
+//	SavingInterfaceClass *battI = &batt;
+//	configHandler.registerClass(battI);
 
-	cout << "Battery Read " << batt.readADC() << " RAW value" << endl;
-
-	Data.batteryVoltage = batt.getBatteryVoltage();
+	cout << "Battery Read " << batt->readADC() << " RAW value" << endl;
+	Data.batteryVoltage = batt->getBatteryVoltage();
 	cout << "Battery Read " << Data.batteryVoltage << " [mV] " << endl;
 
 	//esp_err_t ret;
@@ -600,21 +601,24 @@ extern "C" void app_main(void) {
 	ret = i2c_master_init();
 	if (ret != ESP_OK)
 		cout << "i2c driver install failed" << endl;
-	RTCDriver *ooo = new RTCDriver("RTC", &i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
-	SavingInterfaceClass *rtcI = ooo;
-	configHandler.registerClass(rtcI);
+	//RTCDriver *ooo = new RTCDriver(configHandler, "RTC", &i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
+	RTCDriver *ooo = new RTCDriver(&configHandler, "RTC", &i2c_mutex, &i2c_master_read_slave, &i2c_master_write_slave);
+//	SavingInterfaceClass *rtcI = ooo;
+//	configHandler.registerClass(rtcI);
 	
-	ConnectToESPNOW * espNow = new ConnectToESPNOW("ESPNOW");
-	SavingInterfaceClass *espNowI = espNow;
-	configHandler.registerClass(espNowI);
+	//ConnectToESPNOW * espNow = new ConnectToESPNOW(configHandler,"ESPNOW");
+	ConnectToESPNOW *espNow = new ConnectToESPNOW(&configHandler,"ESPNOW");
+//	SavingInterfaceClass *espNowI = espNow;
+//	configHandler.registerClass(espNowI);
 
 // config file read and process 
 	configHandler.LoadAllConfiguration();
 
 	queueCommand = ooo->getCommandQueue();
 
+//	ret = ooo.readAllRegsFromRTC();
 	ret = ooo->readAllRegsFromRTC();
-	if (ret != ESP_OK) {
+if (ret != ESP_OK) {
 		cout << "i2c Read Failed" << endl;
 	}
 	// Forced DayLight Saving calculation 
@@ -646,7 +650,7 @@ extern "C" void app_main(void) {
 	
 
 	// TD 1/60Hz, TE Enabled, TIE Enabled,  TI_TP Enabled
-	//ooo->writeTimerModeToRTC(0b11111); // 0b11111
+	//ooo.writeTimerModeToRTC(0b11111); // 0b11111
 
 
 // Wake up reason check
@@ -698,7 +702,7 @@ extern "C" void app_main(void) {
 				//ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
 				ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, false));
 			} else if (x.command[0] == 'G' && x.command[1] == 'N') {
-				//ESP_ERROR_CHECK(ooo->CheckDLS());
+				//ESP_ERROR_CHECK(ooo.CheckDLS());
 				ESP_ERROR_CHECK(ooo->readHoursFromRTC(&hour));
 				ESP_ERROR_CHECK(ooo->readMinutesFromRTC(&minute));
 				ESP_ERROR_CHECK(ooo->readSecondsFromRTC(&second));
@@ -767,7 +771,7 @@ extern "C" void app_main(void) {
 						<< TIE_CHECK(value) << " Timer Interrupt Mode "
 						<< TI_TP_CHECK(value) << endl;
 				// trial;
-				//ooo->writeControl2Reg(0b111);
+				//ooo.writeControl2Reg(0b111);
 
 			} else if (x.command[0] == 'G' && x.command[1] == 'A') {
 				ESP_ERROR_CHECK(ooo->printAllRegs(true));
@@ -789,6 +793,7 @@ extern "C" void app_main(void) {
 				cout << "Start checking the oscilloscope pls..." << endl;
 			} else if (x.command[0] == 'Q' && x.command[1] == 'T') {
 				configHandler.SaveAllConfiguration();
+				General::IsChangedSingletone::GetInstance()->shutDown();
 				esp_now_deinit();
 				esp_wifi_stop();
 				i2c_master_deinit();
@@ -810,8 +815,8 @@ extern "C" void app_main(void) {
 			} else if (x.command[0] == 'F' && x.command[1] == 'M') {
 				cout << esp_get_free_heap_size() << " bytes" << endl;
 			} else if (x.command[0] == 'G' && x.command[1] == 'V') {
-				cout << "Battery Read " << batt.readADC() << endl;
-				cout << "Battery Read " << batt.getBatteryVoltage() << " [mV] "
+				cout << "Battery Read " << batt->readADC() << endl;
+				cout << "Battery Read " << batt->getBatteryVoltage() << " [mV] "
 						<< endl;
 			} else if (x.command[0] == 'C' && x.command[1] == 'I') {
 				checkHWInputs();
@@ -823,7 +828,7 @@ extern "C" void app_main(void) {
 
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
-
+	General::IsChangedSingletone::GetInstance()->shutDown();
 	cout << "app_main done" << endl;
 	esp_vfs_spiffs_unregister(NULL);
 }
@@ -864,7 +869,11 @@ void WS_handlerTask(void *parameters) {
 	// task setup
 	int qLen = 0;
 	//ConfigurationHandler * config = (ConfigurationHandler * ) parameters;
+	/*pointers to the classes*/
 	ConfigurationHandler * config = &configHandler;
+	SavingInterfaceClass * RTC = config->getClassPointer("RTC");
+	SavingInterfaceClass * ESPNOW = config->getClassPointer("ESPNOW");
+	SavingInterfaceClass * BttryMGM = config->getClassPointer("BatteryManager");
 	
 	std::string * ws_msg = NULL;
 	// task loop
@@ -891,13 +900,7 @@ void WS_handlerTask(void *parameters) {
 				*/
 				
 				if(root!=NULL) {
-					
 					/*pointers to the classes*/
-					
-					SavingInterfaceClass * RTC = config->getClassPointer("RTC");
-					SavingInterfaceClass * ESPNOW = config->getClassPointer("ESPNOW");
-					SavingInterfaceClass * BttryMGM = config->getClassPointer("BatteryManager");
-					
 					//Json handling
 					cJSON * command = cJSON_GetObjectItem(root, "CMD");
 					
@@ -926,7 +929,7 @@ void WS_handlerTask(void *parameters) {
 							break;
 							}
 						case hashFnc("setEpoch"): {
-							long iepoch = cJSON_GetObjectItem(root,"unit")->valueint;												
+							long iepoch = cJSON_GetObjectItem(root,"epoch")->valueint;												
 							((RTCDriver *) RTC)->writeTimeFromEpochToRTC(iepoch);
 							((RTCDriver *) RTC)->ForcedDLSUpdate();
 							break;
@@ -955,7 +958,7 @@ void WS_handlerTask(void *parameters) {
 							((ConnectToESPNOW *) ESPNOW)->setMeshName(l_meshName);
 							break;
 							}
-						case hashFnc("scan"):
+						case hashFnc("WifiScan"):
 							break;
 						case hashFnc("setRelayNodes"):
 							break;
@@ -984,7 +987,7 @@ void WS_handlerTask(void *parameters) {
 				free(ws_msg);
 			ws_msg = NULL;		
 		}
-		vTaskDelay(5 / portTICK_PERIOD_MS);
+		vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
 	vTaskDelete(NULL);
 		 
