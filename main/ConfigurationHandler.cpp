@@ -16,6 +16,11 @@ void ConfigurationHandler::registerClass(
 	this->_ll.push_back(registerclassptr);
 }
 
+void ConfigurationHandler::removeClass(SavingInterfaceClass * registerclassptr)
+{
+	this->_ll.remove(registerclassptr);
+}
+
 void ConfigurationHandler::LoadAllConfiguration() {
 	if (_ll.empty() == true) {
 		return;
@@ -26,8 +31,8 @@ void ConfigurationHandler::LoadAllConfiguration() {
 	if (file == NULL) {
 		std::cout << "File does not exist : " << _path << std::endl;
 		std::list<SavingInterfaceClass*>::iterator it = _ll.begin();
-		(*it)->setToChanged();
-		return;
+			(*it)->setToChanged();
+				return;
 	}
 	char line[256];
 	while (fgets(line, sizeof(line), file) != NULL) {

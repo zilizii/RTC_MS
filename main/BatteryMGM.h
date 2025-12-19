@@ -32,6 +32,8 @@
 //#include "esp_adc/adc_cali.h"
 //#include "esp_adc/adc_cali_scheme.h"
 #include "esp_system.h"
+#include "ConfigurationHandler.h"
+#include "cJSON.h"
 
 namespace MyEnum {
 enum BatteryType {
@@ -54,8 +56,9 @@ private:
 	uint16_t lowerLimit;
 	MyEnum::BatteryType batt;
 	adc_oneshot_unit_handle_t adc_handle;
+	ConfigurationHandler * configHandler;
 public:
-	BatteryMGM(std::string name);
+	BatteryMGM(ConfigurationHandler* cf, std::string name);
 	virtual ~BatteryMGM();
 	int readADC();
 	int getBatteryVoltage();

@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include "sdkconfig.h"
 #include "SavingInterfaceClass.h"
+#include "ConfigurationHandler.h"
 #include "DataStruct.h"
 
 #include <list>
@@ -102,9 +103,11 @@ class ConnectToESPNOW : public SavingInterfaceClass{
 		bool _isInitalized;
 		QueueHandle_t esp_now_queue;
 		string _MeshName;
+        ConfigurationHandler * configHandler;
 	public:
-		ConnectToESPNOW(std::string name);
-		esp_err_t Init(void);
+		ConnectToESPNOW(ConfigurationHandler* cf, std::string name);
+		~ConnectToESPNOW();
+        esp_err_t Init(void);
 		QueueHandle_t getEspNowQueue(void);
 		std::string getMeshName();
 		void setMeshName(std::string);

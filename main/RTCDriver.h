@@ -17,7 +17,9 @@ using namespace std;
 #include "freertos/semphr.h"
 #include "esp_err.h"
 #include "i2c_cmd.h"
+
 #include "SavingInterfaceClass.h"
+#include "ConfigurationHandler.h"
 
 // i2c Address
 #define ADDRESS_RTC   			0x51
@@ -144,6 +146,7 @@ typedef esp_err_t (*fncPntr)(i2c_port_t, uint8_t, uint8_t, uint8_t *, size_t );
 
 class RTCDriver : public SavingInterfaceClass {
 private:
+	ConfigurationHandler * configHandler;
 	SemaphoreHandle_t  * smph;
 	uint8_t intToBCD(uint8_t num);
 	uint8_t bcdToInt(uint8_t bcd);
@@ -159,7 +162,7 @@ public:
 	cJSON* Save();
 	void Load(cJSON*);
 
-	RTCDriver(std::string name, SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
+	RTCDriver(ConfigurationHandler* ch, std::string name, SemaphoreHandle_t *, fncPntr readI2CFnc, fncPntr writeI2CFnc);
 	QueueHandle_t getCommandQueue(void);
 
 	esp_err_t readAllRegsFromRTC(void);

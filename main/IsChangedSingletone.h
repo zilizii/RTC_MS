@@ -13,7 +13,7 @@ namespace General {
 class IsChangedSingletone {
 private:
 	bool isChanged;
-	static IsChangedSingletone * instancePtr;
+	static inline IsChangedSingletone * instancePtr = nullptr;
 	IsChangedSingletone() { isChanged = false;}
 
 public:
@@ -23,8 +23,8 @@ public:
     void setToChanged() {isChanged = true;}
     bool getIsChanged() {return isChanged;}
 	virtual ~IsChangedSingletone();
-	void init();
-	void shutDown();
+	static void init();
+	static void shutDown();
 
 };
 }
